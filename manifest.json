@@ -1,0 +1,66 @@
+{
+    "manifest_version": 3,
+    "name": "YouTube Default Playback Speed",
+    "description": "Set the default playback speed for YouTube videos! Complete with hotkeys to manipulate the current video speed.",
+    "version": "3.0.2",
+    "permissions": [
+        "storage",
+        "tabs",
+        "commands"
+    ],
+    "action": {
+        "default_popup": "popup/popup.html",
+        "default_icon": {
+          "16": "images/youtube_playback16.png",
+          "32": "images/youtube_playback32.png",
+          "48": "images/youtube_playback48.png",
+          "128": "images/youtube_playback128.png"
+        }
+    },
+    "background": {
+        "service_worker": "scripts/worker.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+          "js": ["scripts/content.js"],
+          "matches": [
+            "https://www.youtube.com/watch*"
+          ],
+          "run_at": "document_end"
+        }
+    ],
+    "commands": {
+      "increment-speed": {
+        "suggested_key": {
+          "default": "Alt+Shift+Up"
+        },
+        "description": "Increase the speed of the current video by increment."
+      },
+      "decrement-speed": {
+        "suggested_key": {
+          "default": "Alt+Shift+Down"
+        },
+        "description": "Decrease the speed of the current video by increment."
+      },
+      "set-speed-1": {
+        "suggested_key": {
+          "default": "Alt+Shift+1"
+        },
+        "description": "Set the speed of the video in the current tab to 1x."
+      },
+      "set-speed-default": {
+        "suggested_key": {
+          "default": "Alt+Shift+2"
+        },
+        "description": "Set the speed of the video in the current tab to your specified default speed."
+      }
+    },
+    "web_accessible_resources": [
+        {
+          "resources": [ "html/time_ui.html" ],
+          "matches": [ "<all_urls>" ]
+        }
+    ]
+    
+}

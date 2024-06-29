@@ -1,0 +1,152 @@
+body {
+    color: #FFFFFF;
+    background-color: #282828;
+    font-family: Roboto, arial, sans-serif;
+    font-size: 13px;
+    border-style: none;
+    width: 250px;
+}
+
+a {
+  color: #d9d9d9;
+}
+
+#support-link {
+  display: block;
+  margin-top: 15px;
+}
+
+::-webkit-scrollbar-track
+{
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    background-color: #F5F5F5;
+}
+
+::-webkit-scrollbar
+{
+    width: 10px;
+    background-color: #F5F5F5;
+}
+
+::-webkit-scrollbar-thumb
+{
+    background-color: #3b3b3b;
+    border: 2px solid #555555;
+}
+
+input {
+    width: 20%;
+    border-radius: 6px;
+    border: none;
+    padding-left: 5px;
+}
+
+#enableForLivestreamValue {
+  max-width: 10px;
+  margin-top: 1em;
+}
+
+table, th, td {
+    border: 1px solid black;
+    padding: 0px;
+}
+
+.inline-item {
+  display: inline;
+}
+
+.collapsible {
+    background-color: #3b3b3b;
+    color: #FFFFFF;
+    cursor: pointer;
+    padding: 10px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    margin-top: 15px;
+}
+
+.title {
+    font-size: 16px;
+}
+
+.hotkey-table {
+  margin-top: 10px;
+  border-collapse: collapse;
+}
+
+.active, .collapsible:hover {
+  background-color: #575757;
+}
+
+.how-to-use-content {
+  padding: 0 18px;
+  background-color: #303030;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.collapsible:after {
+  content: '\02795';
+  font-size: 13px;
+  color: white;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2796";
+}
+
+button.red {
+    background: -webkit-linear-gradient(top, #DD4B39, #D14836); 
+    background: -moz-linear-gradient(top, #DD4B39, #D14836); 
+    background: -ms-linear-gradient(top, #DD4B39, #D14836); 
+    border: 1px solid #DD4B39;
+    color: white;
+    text-shadow: 0 1px 0 #C04131;
+    border-radius: 6px;
+}
+
+button.red:hover {
+     background: -webkit-linear-gradient(top, #DD4B39, #C53727);
+     background: -moz-linear-gradient(top, #DD4B39, #C53727);
+     background: -ms-linear-gradient(top, #DD4B39, #C53727);
+     border: 1px solid #AF301F;
+}
+
+button.red:active {
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.2);
+    background: -webkit-linear-gradient(top, #D74736, #AD2719);
+    background: -moz-linear-gradient(top, #D74736, #AD2719);
+    background: -ms-linear-gradient(top, #D74736, #AD2719);
+}
+
+#halfSpeedButton {
+    width:60px;
+    left: 7%; 
+    position: relative;
+}
+
+#normalSpeedButton {
+    width:60px;
+    left: 12%; 
+    position: relative;
+}
+
+#doubleSpeedButton {
+    width:60px;
+    left: 17%; 
+    position: relative;
+}
+
+#cutoffMinutesInput, #cutoffSecondsInput {
+  width: 2.5em;
+  display: table-cell;
+}
+
+#cutoffButton {
+  margin-left: 5px;
+}

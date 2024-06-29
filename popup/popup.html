@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Popup</title>
+      <link rel="stylesheet" type="text/css" href="./popup.css">
+    </head>
+    <body id="yt_def_sp_body">
+      <div>
+        <h2 class="title">Set a default playback speed</h2>
+        <p id="defaultSpeedDisplay"></p>
+        <input id="defaultSpeedValue" type="number" min="0.1" step="0.1">
+        <button class="red" id="setSpeedButton">Set Speed</button>
+        <p id="incrementDisplay"></p>
+        <input id="incrementValue" type="number" min="0.1" step="0.1">
+        <button class="red" id="setIncrementButton">Set Increment</button>
+        <p id="cutoffDisplay">Current cutoff: None</p>
+        <div>
+          <input class="inline-item" id="cutoffMinutesInput" type="number" min="0" max="59" step="1">
+          <p class="inline-item">:</p>
+          <input class="inline-item" id="cutoffSecondsInput" type="number" min="0" max="59" step="1">
+          <button class="red inline-item" id="cutoffButton">Set Cutoff</button>
+        </div>
+        <input type="checkbox" id="enableForLivestreamValue">
+        <label id="livestream_desc">Enable for livestreams</label>
+      </div>
+      <div>
+        <p>Quick Change for Current Tab:</p>
+        <button class="red" id="halfSpeedButton" title="Alt+3">0.5x</button>
+        <button class="red" id="normalSpeedButton" title="Alt+1">1x</button>
+        <button class="red" id="doubleSpeedButton" title="Alt+2">2x</button>
+      </div>
+      <a id="support-link" href="https://www.buymeacoffee.com/noahksolomon">Buy me a coffee</a>
+      <button type="button" class="collapsible">How to Use This Extension</button>
+      <div class="how-to-use-content">
+        <!-- START COLLAPSIBLES -->
+        <button type="button" class="collapsible">Hotkeys</button>
+        <div class="how-to-use-content">
+          <table class="hotkey-table">
+          <thead>
+            <tr>
+              <th>Hotkey</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a id="td-set-speed-default" href="chrome://extensions/configureCommands"></a></td>
+              <td>Set the current tab speed to specified default speed.</td>
+            </tr>
+            <tr>
+              <td><a id="td-set-speed-1" href="chrome://extensions/configureCommands"></a></td>
+              <td>Set the current tab speed to 1x.</td>
+            </tr>
+            <tr>
+              <td><a id="td-increment-speed" href="chrome://extensions/configureCommands"></a></td>
+              <td>Increase the current tab speed by the increment amount.</td>
+            </tr>
+            <tr>
+              <td><a id="td-decrement-speed" href="chrome://extensions/configureCommands"></a></td>
+              <td>Decrease the current tab speed by the increment amount.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>You can set more hotkeys by navigating to chrome://extensions/shortcuts.</p>
+        </div>
+        <button type="button" class="collapsible">Default Speed</button>
+        <div class="how-to-use-content">
+          <p>
+          You can set a default video speed using the above input field and press enter or the 'Set Speed' button. The default speed amount is 1x (normal speed).
+          </p>
+        </div>
+        <button type="button" class="collapsible">Increment</button>
+        <div class="how-to-use-content">
+          <p>
+          Similar to the default speed, you can set an increment amount using the above input field and press enter or the 'Set Increment' button. The default increment amount is 0.25x.
+          </p>
+        </div>
+        <button type="button" class="collapsible">Cutoff</button>
+        <div class="how-to-use-content">
+          <p>
+          Any video equal to or under the duration entered will not have its speed altered and will remain at 1x speed. The format is MM:SS and can be set by inputing the desired cutoff and pressing the 'Set Cutoff' button or the enter key inside the cutoff input field.
+          </p>
+        </div>
+        <!-- END COLLAPSIBLES -->
+      </div>
+      <script src="./popup.js"></script>
+    </body>
+</html>
