@@ -78,11 +78,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case MESSAGES.REFRESH_SETTINGS:
             Object.assign(SETTINGS, message.settings);
             break;
+        // Step from the video's actual rate, since YouTube can change it
+        // without the extension knowing
         case COMMANDS.INCREMENT:
-            SETTINGS[KEYS.DEFAULT_SPEED] += SETTINGS[KEYS.INCREMENT];
+            SETTINGS[KEYS.DEFAULT_SPEED] = video.playbackRate + SETTINGS[KEYS.INCREMENT];
             break;
         case COMMANDS.DECREMENT:
-            SETTINGS[KEYS.DEFAULT_SPEED] -= SETTINGS[KEYS.INCREMENT];
+            SETTINGS[KEYS.DEFAULT_SPEED] = video.playbackRate - SETTINGS[KEYS.INCREMENT];
             break;
         case COMMANDS.SET_SPEED_1:
         case COMMANDS.SET_SPEED_DEFAULT:
