@@ -17,7 +17,6 @@ const KEYS = {};
 const SETTINGS = {};
 const COMMANDS = {};
 const MESSAGES = {};
-const ELEMENTS = {};
 const INJECTED_ELEMENTS = {};
 
 
@@ -86,18 +85,14 @@ function handleAds() {
     skippingAd = adShowing;
 }
 
-async function retrieveHTMLToInject() {
-    return fetch(chrome.runtime.getURL("html/time_ui.html"))
-    .then(response => response.text())
-    .then(timeElement => {
-        Object.assign(ELEMENTS, {TIME: timeElement});
-    });
-}
-
 function injectSettingsHTML(defaultDurationElem) {
-    // Time html
-    defaultDurationElem.insertAdjacentHTML('afterend', ELEMENTS.TIME);
-    Object.assign(INJECTED_ELEMENTS, {TIME: document.getElementById("new-time-ytpbs")});
+    // Time html, styled like YouTube's duration next to it
+    const timeElement = document.createElement("span");
+    timeElement.id = "new-time-ytpbs";
+    timeElement.className = "ytp-time-duration";
+    timeElement.style.marginLeft = "5px";
+    defaultDurationElem.insertAdjacentElement('afterend', timeElement);
+    Object.assign(INJECTED_ELEMENTS, {TIME: timeElement});
 }
 
 function refreshSettingsHTML() {
@@ -182,9 +177,6 @@ chrome.runtime.sendMessage({action: "getAllConfigs"})
     Object.assign(SETTINGS, configs.settings);
     Object.assign(COMMANDS, configs.commands);
     Object.assign(MESSAGES, configs.messages);
-    retrieveHTMLToInject()
-    .then(() => {
-        attachToPlayer();
-        new MutationObserver(attachToPlayer).observe(document.body, {childList: true, subtree: true});
-    });
+    attachToPlayer();
+    new MutationObserver(attachToPlayer).observe(document.body, {childList: true, subtree: true});
 })

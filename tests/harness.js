@@ -37,6 +37,7 @@ function fakeYouTubePage() {
         getElementsByTagName: (tag) => (tag === "video" && page.video ? [page.video] : []),
         getElementsByClassName: (c) => (c === "ytp-time-duration" && page.duration ? [page.duration] : []),
         getElementById: (id) => (id === "new-time-ytpbs" ? page.injected : null),
+        createElement: (tagName) => ({ tagName: tagName.toUpperCase(), style: {}, innerHTML: "", isConnected: false }),
     };
 
     class MutationObserver {
@@ -53,9 +54,9 @@ function fakeYouTubePage() {
         page.player.classList.contains = page.player.classList.has;
         page.video = makeVideo();
         page.duration = {
-            insertAdjacentHTML: () => {
+            insertAdjacentElement: (position, element) => {
                 page.injectCount++;
-                page.injected = { innerHTML: "", isConnected: true };
+                page.injected = Object.assign(element, { isConnected: true, position });
             },
         };
         notify();
@@ -117,7 +118,11 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
             getURL: (p) => p,
         },
     };
-    const fetch = async () => ({ text: async () => "<span></span>" });
+    const fetches = [];
+    const fetch = async (url) => {
+        fetches.push(url);
+        return { text: async () => "" };
+    };
     const errors = [];
     const onError = (e) => { e.preventDefault(); errors.push(e.reason); };
     globalThis.addEventListener("unhandledrejection", onError);
@@ -136,7 +141,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     const cleanup = () => globalThis.removeEventListener("unhandledrejection", onError);
     return {
         page: yt.page, fireCommand, openVideo, startAd, endAd,
-        errors, cleanup, tabListeners, commandListeners,
+        errors, fetches, cleanup, tabListeners, commandListeners,
     };
 }
 
