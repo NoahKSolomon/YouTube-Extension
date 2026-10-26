@@ -15,7 +15,10 @@ export function matchPatternToRegExp(pattern) {
 // until a video is opened.
 function fakeYouTubePage() {
     const observers = [];
-    const page = { player: null, video: null, duration: null, injected: null, injectCount: 0 };
+    const page = {
+        player: null, video: null, duration: null, injected: null, injectCount: 0,
+        location: { search: "?v=abc" },
+    };
 
     function makeVideo() {
         const listeners = {};
@@ -75,7 +78,7 @@ function fakeYouTubePage() {
     return { page, document, MutationObserver, openVideo, startAd, endAd };
 }
 
-export async function setup(storedSettings, { startOnWatchPage = true, startInAd = false } = {}) {
+export async function setup(storedSettings, { startOnWatchPage = true, startInAd = false, duration } = {}) {
     const tabListeners = [];
     const workerMsgListeners = [];
     const commandListeners = [];
@@ -109,6 +112,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     // Content script gets its own chrome object, as in the browser.
     const yt = fakeYouTubePage();
     if (startOnWatchPage) yt.openVideo();
+    if (duration !== undefined) yt.page.video.duration = duration;
     if (startInAd) yt.startAd();
     const contentChrome = {
         runtime: {
@@ -127,8 +131,8 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     const onError = (e) => { e.preventDefault(); errors.push(e.reason); };
     globalThis.addEventListener("unhandledrejection", onError);
     try {
-        new Function("chrome", "document", "fetch", "MutationObserver", await read("scripts/content.js"))(
-            contentChrome, yt.document, fetch, yt.MutationObserver);
+        new Function("chrome", "document", "fetch", "MutationObserver", "location", await read("scripts/content.js"))(
+            contentChrome, yt.document, fetch, yt.MutationObserver, yt.page.location);
     } catch (e) {
         errors.push(e);
     }
@@ -139,9 +143,21 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     const startAd = async () => { yt.startAd(); await settle(); };
     const endAd = async () => { yt.endAd(); await settle(); };
     const cleanup = () => globalThis.removeEventListener("unhandledrejection", onError);
+    // Send a message to the content script the way the popup does, returning its response
+    const send = (message) => {
+        let response;
+        tabListeners.forEach((l) => l(message, {}, (r) => { response = r; }));
+        return response;
+    };
+    // What YouTube does when it opens another video without a page load
+    const loadVideo = (id, duration) => {
+        yt.page.location.search = `?v=${id}`;
+        yt.page.video.duration = duration;
+        yt.page.video.dispatch("loadedmetadata");
+    };
     return {
         page: yt.page, fireCommand, openVideo, startAd, endAd,
-        errors, fetches, cleanup, tabListeners, commandListeners,
+        errors, fetches, cleanup, send, loadVideo, tabListeners, commandListeners,
     };
 }
 

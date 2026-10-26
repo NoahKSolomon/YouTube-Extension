@@ -25,4 +25,6 @@ export const MESSAGES = {
     GET_ALL_CONFIGS: "getAllConfigs",
     UPDATE_SETTINGS: "updateSettings",
     REFRESH_SETTINGS: "refreshSettings",
+    GET_TAB_STATE: "getTabState",
+    SET_TAB_SPEED: "setTabSpeed",
 }

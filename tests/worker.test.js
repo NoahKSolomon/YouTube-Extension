@@ -49,3 +49,27 @@ Deno.test("a hotkey on a tab without a content script does not throw", async () 
     assertEquals(w.errors, []);
     w.cleanup();
 });
+
+// The popup and the settings page can both be open, so each sends only the
+// setting that changed
+Deno.test("saving one setting keeps the others", async () => {
+    let stored = { playback_speed: 2, increment: 0.5, cutoff_in_seconds: 60, enabled_for_livestream: true, skip_ads: false };
+    const messageListeners = [];
+    const chrome = {
+        storage: { sync: {
+            get: async () => ({ settings: stored }),
+            set: async (items) => { stored = structuredClone(items.settings); },
+        }},
+        tabs: { query: (q, cb) => cb([]), sendMessage: () => Promise.resolve() },
+        commands: { onCommand: { addListener() {} } },
+        runtime: { onMessage: { addListener: (f) => messageListeners.push(f) } },
+    };
+    const shared = await import(new URL("../scripts/sharedObjects.js", import.meta.url));
+    const workerSrc = (await read("scripts/worker.js")).replace(/^import .*$/m, "");
+    new Function("chrome", "KEYS", "DEFAULT_SETTINGS", "COMMANDS", "MESSAGES", workerSrc)(
+        chrome, shared.KEYS, shared.DEFAULT_SETTINGS, shared.COMMANDS, shared.MESSAGES);
+    await new Promise((r) => setTimeout(r, 0));
+
+    messageListeners.forEach((l) => l({ action: "updateSettings", settings: { playback_speed: 3 } }, {}, () => {}));
+    assertEquals(stored, { playback_speed: 3, increment: 0.5, cutoff_in_seconds: 60, enabled_for_livestream: true, skip_ads: false });
+});

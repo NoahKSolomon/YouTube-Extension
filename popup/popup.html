@@ -2,92 +2,60 @@
 <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Popup</title>
-      <link rel="stylesheet" type="text/css" href="./popup.css">
+      <title>Playback Speed</title>
+      <link rel="stylesheet" href="../ui/ui.css">
     </head>
-    <body id="yt_def_sp_body">
-      <div>
-        <h2 class="title">Set a default playback speed</h2>
-        <p id="defaultSpeedDisplay"></p>
-        <input id="defaultSpeedValue" type="number" min="0.1" step="0.1">
-        <button class="red" id="setSpeedButton">Set Speed</button>
-        <p id="incrementDisplay"></p>
-        <input id="incrementValue" type="number" min="0.1" step="0.1">
-        <button class="red" id="setIncrementButton">Set Increment</button>
-        <p id="cutoffDisplay">Current cutoff: None</p>
-        <div>
-          <input class="inline-item" id="cutoffMinutesInput" type="number" min="0" max="59" step="1">
-          <p class="inline-item">:</p>
-          <input class="inline-item" id="cutoffSecondsInput" type="number" min="0" max="59" step="1">
-          <button class="red inline-item" id="cutoffButton">Set Cutoff</button>
+    <body class="popup">
+      <header class="header">
+        <img src="../images/youtube_playback32.png" alt="" width="20" height="20">
+        <h1 class="header-title">Playback Speed</h1>
+        <button id="openSettings" class="icon-button" type="button" title="Settings" aria-label="Open settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+        </button>
+      </header>
+
+      <section class="section" aria-labelledby="tabHeading">
+        <div class="row">
+          <h2 id="tabHeading" class="label">This tab</h2>
+          <span id="tabSpeed" class="tab-speed">–</span>
         </div>
-        <input type="checkbox" id="enableForLivestreamValue">
-        <label id="livestream_desc">Enable for livestreams</label>
-        <br>
-        <input type="checkbox" id="skipAdsValue">
-        <label for="skipAdsValue">Speed through and mute ads</label>
-      </div>
-      <div>
-        <p>Quick Change for Current Tab:</p>
-        <button class="red" id="halfSpeedButton" title="Alt+3">0.5x</button>
-        <button class="red" id="normalSpeedButton" title="Alt+1">1x</button>
-        <button class="red" id="doubleSpeedButton" title="Alt+2">2x</button>
-      </div>
-      <a id="support-link" href="https://www.buymeacoffee.com/noahksolomon">Buy me a coffee</a>
-      <button type="button" class="collapsible">How to Use This Extension</button>
-      <div class="how-to-use-content">
-        <!-- START COLLAPSIBLES -->
-        <button type="button" class="collapsible">Hotkeys</button>
-        <div class="how-to-use-content">
-          <table class="hotkey-table">
-          <thead>
-            <tr>
-              <th>Hotkey</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><a id="td-set-speed-default" href="chrome://extensions/configureCommands"></a></td>
-              <td>Set the current tab speed to specified default speed.</td>
-            </tr>
-            <tr>
-              <td><a id="td-set-speed-1" href="chrome://extensions/configureCommands"></a></td>
-              <td>Set the current tab speed to 1x.</td>
-            </tr>
-            <tr>
-              <td><a id="td-increment-speed" href="chrome://extensions/configureCommands"></a></td>
-              <td>Increase the current tab speed by the increment amount.</td>
-            </tr>
-            <tr>
-              <td><a id="td-decrement-speed" href="chrome://extensions/configureCommands"></a></td>
-              <td>Decrease the current tab speed by the increment amount.</td>
-            </tr>
-          </tbody>
-        </table>
-        <p>You can set more hotkeys by navigating to chrome://extensions/shortcuts.</p>
+        <div class="chips" role="group" aria-labelledby="tabHeading">
+          <button class="chip" type="button" data-speed="0.5" disabled>0.5x</button>
+          <button class="chip" type="button" data-speed="1" disabled>1x</button>
+          <button class="chip" type="button" data-speed="1.5" disabled>1.5x</button>
+          <button class="chip" type="button" data-speed="2" disabled>2x</button>
         </div>
-        <button type="button" class="collapsible">Default Speed</button>
-        <div class="how-to-use-content">
-          <p>
-          You can set a default video speed using the above input field and press enter or the 'Set Speed' button. The default speed amount is 1x (normal speed).
-          </p>
+        <p id="noVideo" class="hint" hidden>Open or refresh a YouTube video to change its speed here.</p>
+      </section>
+
+      <section class="section">
+        <div class="row">
+          <label class="label-group" for="defaultSpeed">
+            <span class="label">Default speed</span>
+            <span class="hint">For every video you open</span>
+          </label>
+          <span class="field">
+            <input id="defaultSpeed" class="text-input" type="number" min="0.1" max="16" step="0.1"
+                   data-setting="DEFAULT_SPEED" data-kind="speed" aria-describedby="defaultSpeed-error">
+            <span class="suffix">x</span>
+          </span>
         </div>
-        <button type="button" class="collapsible">Increment</button>
-        <div class="how-to-use-content">
-          <p>
-          Similar to the default speed, you can set an increment amount using the above input field and press enter or the 'Set Increment' button. The default increment amount is 0.25x.
-          </p>
+        <p id="defaultSpeed-error" class="error" role="alert"></p>
+        <div class="row">
+          <label class="label-group" for="skipAds">
+            <span class="label">Speed through ads</span>
+            <span class="hint">16x and muted</span>
+          </label>
+          <input id="skipAds" class="switch" type="checkbox" role="switch" data-setting="SKIP_ADS">
         </div>
-        <button type="button" class="collapsible">Cutoff</button>
-        <div class="how-to-use-content">
-          <p>
-          Any video equal to or under the duration entered will not have its speed altered and will remain at 1x speed. The format is MM:SS and can be set by inputing the desired cutoff and pressing the 'Set Cutoff' button or the enter key inside the cutoff input field.
-          </p>
-        </div>
-        <!-- END COLLAPSIBLES -->
-      </div>
+      </section>
+
+      <footer class="footer">
+        <a href="https://www.buymeacoffee.com/noahksolomon" target="_blank" rel="noopener">Buy me a coffee</a>
+      </footer>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <script src="../ui/settings.js"></script>
       <script src="./popup.js"></script>
     </body>
 </html>

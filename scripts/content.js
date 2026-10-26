@@ -12,6 +12,9 @@ const AD_SPEED = 16;
 // muted it (so a video the user muted stays muted afterwards)
 let skippingAd = false;
 let mutedForAd = false;
+// The video the user last changed the speed of with a hotkey or the popup,
+// which then gets that speed even if it is short or a livestream
+let speedChangedOnVideoId = null;
 
 const KEYS = {};
 const SETTINGS = {};
@@ -51,10 +54,34 @@ function isSkippingAd() {
     return Boolean(SETTINGS[KEYS.SKIP_ADS] && player?.classList.contains("ad-showing"));
 }
 
+function currentVideoId() {
+    return new URLSearchParams(location.search).get("v");
+}
+
+// Videos at or under the cutoff, and livestreams unless enabled, stay at 1x.
+// Livestreams have an infinite duration.
+function isExcludedVideo() {
+    if (video.duration === Infinity) {
+        return !SETTINGS[KEYS.LIVESTREAM];
+    }
+    const cutoff = SETTINGS[KEYS.CUTOFF];
+    return cutoff > 0 && video.duration <= cutoff;
+}
+
+function targetSpeed() {
+    if (isSkippingAd()) {
+        return AD_SPEED;
+    }
+    if (isExcludedVideo() && speedChangedOnVideoId !== currentVideoId()) {
+        return 1;
+    }
+    return SETTINGS[KEYS.DEFAULT_SPEED];
+}
+
 // Update the actual page elements with the settings
 function updatePageSettings() {
     if (video) {
-        video.playbackRate = isSkippingAd() ? AD_SPEED : SETTINGS[KEYS.DEFAULT_SPEED];
+        video.playbackRate = targetSpeed();
     }
 }
 
@@ -143,8 +170,12 @@ function attachToPlayer() {
 
 // EVENT LISTENERS
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    // During an ad the video is at AD_SPEED, so step from the stored speed
+    // During an ad the video is at AD_SPEED, so use the stored speed
     const currentSpeed = video && !isSkippingAd() ? video.playbackRate : SETTINGS[KEYS.DEFAULT_SPEED];
+    if (message.action === MESSAGES.GET_TAB_STATE) {
+        sendResponse({hasVideo: Boolean(video), speed: currentSpeed});
+        return;
+    }
     switch(message.action) {
         case MESSAGES.REFRESH_SETTINGS:
             Object.assign(SETTINGS, message.settings);
@@ -153,13 +184,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // without the extension knowing
         case COMMANDS.INCREMENT:
             SETTINGS[KEYS.DEFAULT_SPEED] = currentSpeed + SETTINGS[KEYS.INCREMENT];
+            speedChangedOnVideoId = currentVideoId();
             break;
         case COMMANDS.DECREMENT:
             SETTINGS[KEYS.DEFAULT_SPEED] = currentSpeed - SETTINGS[KEYS.INCREMENT];
+            speedChangedOnVideoId = currentVideoId();
             break;
         case COMMANDS.SET_SPEED_1:
         case COMMANDS.SET_SPEED_DEFAULT:
+        case MESSAGES.SET_TAB_SPEED:
             SETTINGS[KEYS.DEFAULT_SPEED] = message.speed;
+            speedChangedOnVideoId = currentVideoId();
             break;
 
     }

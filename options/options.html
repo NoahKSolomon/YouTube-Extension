@@ -1,15 +1,97 @@
 <!DOCTYPE html>
-  <html>
+<html lang="en">
     <head>
-      <link rel="stylesheet" type="text/css" href="../popup/popup.css">
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>YouTube Default Playback Speed settings</title>
+      <link rel="stylesheet" href="../ui/ui.css">
     </head>
     <body>
-      <div>
-        <h2 syle="{width:300px;}">Options for YouTube playback speed</h2>
-      </div>
-      <p id="defaultSpeedDisplay"></p>
-      <input id="defaultSpeedValue" type="number" min="0.1" step="0.1">
-      <button class="red" id="setSpeedButton">Save</button>
+      <main class="page-content">
+        <header class="page-header">
+          <img src="../images/youtube_playback48.png" alt="" width="32" height="32">
+          <h1 class="page-title">YouTube Default Playback Speed</h1>
+        </header>
+
+        <section class="card" aria-labelledby="playbackHeading">
+          <h2 id="playbackHeading" class="card-title">Playback</h2>
+          <div class="row">
+            <label class="label-group" for="defaultSpeed">
+              <span class="label">Default speed</span>
+              <span class="hint">Applied to every video you open. Hotkeys and the popup change the current tab only.</span>
+            </label>
+            <span class="field">
+              <input id="defaultSpeed" class="text-input" type="number" min="0.1" max="16" step="0.1"
+                     data-setting="DEFAULT_SPEED" data-kind="speed" aria-describedby="defaultSpeed-error">
+              <span class="suffix">x</span>
+            </span>
+          </div>
+          <p id="defaultSpeed-error" class="error" role="alert"></p>
+          <div class="row">
+            <label class="label-group" for="increment">
+              <span class="label">Hotkey step</span>
+              <span class="hint">How much the increase and decrease hotkeys change the speed.</span>
+            </label>
+            <span class="field">
+              <input id="increment" class="text-input" type="number" min="0.1" max="16" step="0.1"
+                     data-setting="INCREMENT" data-kind="step" aria-describedby="increment-error">
+              <span class="suffix">x</span>
+            </span>
+          </div>
+          <p id="increment-error" class="error" role="alert"></p>
+        </section>
+
+        <section class="card" aria-labelledby="exceptionsHeading">
+          <h2 id="exceptionsHeading" class="card-title">Exceptions</h2>
+          <div class="row">
+            <label class="label-group" for="cutoff">
+              <span class="label">Keep short videos at 1x</span>
+              <span class="hint">Videos this long or shorter play at normal speed. Enter minutes:seconds, or leave empty to turn off.</span>
+            </label>
+            <span class="field">
+              <input id="cutoff" class="text-input" type="text" inputmode="numeric" placeholder="Off"
+                     data-setting="CUTOFF" data-kind="duration" aria-describedby="cutoff-error">
+            </span>
+          </div>
+          <p id="cutoff-error" class="error" role="alert"></p>
+          <div class="row">
+            <label class="label-group" for="livestream">
+              <span class="label">Apply to livestreams</span>
+              <span class="hint">When off, livestreams play at normal speed.</span>
+            </label>
+            <input id="livestream" class="switch" type="checkbox" role="switch" data-setting="LIVESTREAM">
+          </div>
+          <p class="hint card-note">You can still change the speed of these videos with the hotkeys or the popup.</p>
+        </section>
+
+        <section class="card" aria-labelledby="adsHeading">
+          <h2 id="adsHeading" class="card-title">Ads</h2>
+          <div class="row">
+            <label class="label-group" for="skipAds">
+              <span class="label">Speed through ads</span>
+              <span class="hint">Plays ads at 16x, the fastest Chrome allows, and mutes them until your video starts.</span>
+            </label>
+            <input id="skipAds" class="switch" type="checkbox" role="switch" data-setting="SKIP_ADS">
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="hotkeysHeading">
+          <h2 id="hotkeysHeading" class="card-title">Hotkeys</h2>
+          <table class="hotkeys">
+            <tbody id="hotkeyRows"></tbody>
+          </table>
+          <div class="card-actions">
+            <button id="changeHotkeys" class="pill-button" type="button">Change hotkeys</button>
+          </div>
+        </section>
+
+        <footer class="page-footer">
+          <a href="https://www.buymeacoffee.com/noahksolomon" target="_blank" rel="noopener">Buy me a coffee</a>
+        </footer>
+      </main>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <script src="../ui/settings.js"></script>
+      <script src="./options.js"></script>
     </body>
-    <script src="options.js"></script>
-  </html>
+</html>

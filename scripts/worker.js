@@ -35,9 +35,10 @@ function sendMessageToAllTabs(message) {
     });
 }
 
+// newSettings may hold only the settings that changed
 function updateSettings(newSettings) {
-    chrome.storage.sync.set({settings: newSettings});
     Object.assign(settingsCache, newSettings);
+    chrome.storage.sync.set({settings: settingsCache});
     sendMessageToAllTabs({action: MESSAGES.REFRESH_SETTINGS, settings: settingsCache});
 }
 
