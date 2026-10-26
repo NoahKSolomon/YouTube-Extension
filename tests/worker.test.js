@@ -21,6 +21,7 @@ async function loadWorkerWithNoReceivers() {
         },
         commands: { onCommand: { addListener: (f) => commandListeners.push(f) } },
         runtime: { onMessage: { addListener() {} } },
+        action: { setBadgeBackgroundColor: async () => {}, setBadgeTextColor: async () => {} },
     };
     const errors = [];
     const onError = (e) => { e.preventDefault(); errors.push(e.reason.message); };
@@ -60,6 +61,7 @@ Deno.test("saving one setting keeps the others", async () => {
         tabs: { query: (q, cb) => cb([]), sendMessage: () => Promise.resolve() },
         commands: { onCommand: { addListener() {} } },
         runtime: { onMessage: { addListener: (f) => messageListeners.push(f) } },
+        action: { setBadgeBackgroundColor: async () => {}, setBadgeTextColor: async () => {} },
     };
     await loadWorker(chrome);
     await new Promise((r) => setTimeout(r, 0));
@@ -82,6 +84,7 @@ Deno.test("a page asking right after the worker wakes gets the saved settings", 
         tabs: { query: (q, cb) => cb([]), sendMessage: () => Promise.resolve() },
         commands: { onCommand: { addListener() {} } },
         runtime: { onMessage: { addListener: (f) => messageListeners.push(f) } },
+        action: { setBadgeBackgroundColor: async () => {}, setBadgeTextColor: async () => {} },
     };
     await loadWorker(chrome);
 

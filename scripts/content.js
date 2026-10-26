@@ -21,6 +21,8 @@ let speedChangedOnVideoId = null;
 // The last speed this script set, to tell its own ratechange events apart
 // from YouTube's
 let appliedSpeed = null;
+// The last speed sent to the worker for the toolbar badge
+let reportedSpeed = null;
 
 const SETTINGS = {};
 const INJECTED_ELEMENTS = {};
@@ -78,14 +80,31 @@ function isExcludedVideo() {
     return cutoff > 0 && video.duration <= cutoff;
 }
 
-function targetSpeed() {
-    if (isSkippingAd()) {
-        return AD_SPEED;
-    }
+// The video's own speed, ignoring any ad playing over it
+function videoSpeed() {
     if (isExcludedVideo() && speedChangedOnVideoId !== currentVideoId()) {
         return 1;
     }
     return tabSpeed ?? SETTINGS[KEYS.DEFAULT_SPEED];
+}
+
+function targetSpeed() {
+    return isSkippingAd() ? AD_SPEED : videoSpeed();
+}
+
+// The worker shows it on the toolbar icon. Sending throws once the extension
+// has been reloaded and this copy of the script is cut off.
+function reportSpeed() {
+    const speed = videoSpeed();
+    if (speed === reportedSpeed) {
+        return;
+    }
+    reportedSpeed = speed;
+    try {
+        chrome.runtime.sendMessage({action: MESSAGES.SPEED_CHANGED, speed}).catch(() => {});
+    } catch {
+        // Cut off from the extension; nothing to update
+    }
 }
 
 function setVideoSpeed(speed) {
@@ -106,12 +125,14 @@ function adoptYouTubeSpeed() {
     appliedSpeed = video.playbackRate;
     speedChangedOnVideoId = currentVideoId();
     refreshSettingsHTML();
+    reportSpeed();
 }
 
 // Update the actual page elements with the settings
 function updatePageSettings() {
     if (video) {
         setVideoSpeed(targetSpeed());
+        reportSpeed();
     }
 }
 

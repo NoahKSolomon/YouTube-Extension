@@ -9,7 +9,17 @@ const settingsLoaded = chrome.storage.sync.get(["settings"])
     Object.assign(settingsCache, result.settings);
 });
 
+// The speed badge on the toolbar icon, in the popup's red
+chrome.action.setBadgeBackgroundColor({color: "#cc0000"});
+chrome.action.setBadgeTextColor({color: "#ffffff"});
+
 // FUNCTIONS
+
+// Badges fit about four characters, so "2x" and "1.5x", but "1.25"
+function badgeText(speed) {
+    const rounded = String(Number(speed.toFixed(2)));
+    return rounded.length < 4 ? `${rounded}x` : rounded;
+}
 
 // Tabs opened before the extension was (re)loaded have no content script until
 // refreshed, and sending to them rejects. Nothing is listening, so ignore it.
@@ -54,6 +64,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
         case MESSAGES.UPDATE_SETTINGS:
             settingsLoaded.then(() => updateSettings(message.settings));
+            break;
+        case MESSAGES.SPEED_CHANGED:
+            chrome.action.setBadgeText({tabId: sender.tab.id, text: badgeText(message.speed)});
             break;
     }
 });

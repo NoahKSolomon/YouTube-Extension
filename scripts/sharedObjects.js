@@ -37,4 +37,5 @@ const MESSAGES = {
     REFRESH_SETTINGS: "refreshSettings",
     GET_TAB_STATE: "getTabState",
     SET_TAB_SPEED: "setTabSpeed",
+    SPEED_CHANGED: "speedChanged",
 }

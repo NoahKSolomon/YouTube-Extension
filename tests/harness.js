@@ -107,6 +107,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     const workerMsgListeners = [];
     const commandListeners = [];
     const tab = { id: 1, url: "https://www.youtube.com/watch?v=abc" };
+    const badges = {};
 
     const chrome = {
         storage: { sync: {
@@ -124,6 +125,11 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
         runtime: {
             onMessage: { addListener: (f) => workerMsgListeners.push(f) },
             getURL: (p) => p,
+        },
+        action: {
+            setBadgeText: ({ tabId, text }) => { badges[tabId] = text; return Promise.resolve(); },
+            setBadgeBackgroundColor: () => Promise.resolve(),
+            setBadgeTextColor: () => Promise.resolve(),
         },
     };
 
@@ -192,7 +198,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
         await settle();
     };
     return {
-        page: yt.page, fireCommand, openVideo, startAd, endAd,
+        page: yt.page, badge: () => badges[tab.id], fireCommand, openVideo, startAd, endAd,
         errors, fetches, cleanup, send, loadVideo, pickYouTubeSpeed, tabListeners, commandListeners,
     };
 }
