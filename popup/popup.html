@@ -26,6 +26,10 @@
           <button class="chip" type="button" data-speed="2" disabled>2x</button>
         </div>
         <p id="speedReason" class="hint" hidden></p>
+        <div id="channelRule" class="row compact-row" hidden>
+          <span id="channelRuleText" class="hint channel-name"></span>
+          <button id="channelRuleButton" class="pill-button small" type="button"></button>
+        </div>
         <p id="noVideo" class="hint" hidden>Open or refresh a YouTube video to change its speed here.</p>
       </section>
 
@@ -58,6 +62,7 @@
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
       <script src="../scripts/sharedObjects.js"></script>
       <script src="../ui/settings.js"></script>
+      <script src="../ui/rules.js"></script>
       <script src="./popup.js"></script>
     </body>
 </html>

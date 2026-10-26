@@ -29,6 +29,8 @@ function fakeYouTubePage() {
         player: null, video: null, duration: null, injected: null, injectCount: 0,
         shortsPlayer: null, shortsVideo: null,
         location: { pathname: "/watch", search: "?v=abc" },
+        // What each player's getPlayerResponse() describes, by player id
+        videoInfo: {},
     };
 
     function makeVideo() {
@@ -54,16 +56,25 @@ function fakeYouTubePage() {
         return video;
     }
 
+    // Events between the content script and page.js go through the document
+    const events = new EventTarget();
     const document = {
         body: {},
         documentElement: {},
+        addEventListener: events.addEventListener.bind(events),
+        removeEventListener: events.removeEventListener.bind(events),
+        dispatchEvent: events.dispatchEvent.bind(events),
         querySelector: (selector) => ({
             "#movie_player": page.player,
             "#shorts-player": page.shortsPlayer,
         })[selector] ?? null,
         getElementsByTagName: (tag) => (tag === "video" && page.video ? [page.video] : []),
         getElementsByClassName: (c) => (c === "ytp-time-duration" && page.duration ? [page.duration] : []),
-        getElementById: (id) => (id === "new-time-ytpbs" ? page.injected : null),
+        getElementById: (id) => ({
+            "new-time-ytpbs": page.injected,
+            "movie_player": page.player,
+            "shorts-player": page.shortsPlayer,
+        })[id] ?? null,
         createElement: (tagName) => ({ tagName: tagName.toUpperCase(), style: {}, textContent: "", isConnected: false }),
     };
 
@@ -79,7 +90,18 @@ function fakeYouTubePage() {
     function makePlayer(id, contents) {
         const classList = new Set();
         classList.contains = classList.has;
-        return { id, classList, isConnected: true, querySelector: (selector) => contents()[selector] ?? null };
+        return {
+            id, classList, isConnected: true,
+            querySelector: (selector) => contents()[selector] ?? null,
+            // YouTube's player data, as read by page.js
+            getPlayerResponse: () => {
+                const info = page.videoInfo[id];
+                return info && {
+                    videoDetails: { videoId: info.videoId, channelId: info.channelId, author: info.channelName },
+                    microformat: { playerMicroformatRenderer: { category: info.category } },
+                };
+            },
+        };
     }
 
     // What YouTube does when a video is opened: build the player in place
@@ -125,7 +147,7 @@ function fakeYouTubePage() {
     return { page, document, MutationObserver, openVideo, startAd, endAd, openShort, goToWatchPage, notify };
 }
 
-export async function setup(storedSettings, { startOnWatchPage = true, startOnShort = false, startInAd = false, duration } = {}) {
+export async function setup(storedSettings, { startOnWatchPage = true, startOnShort = false, startInAd = false, duration, videoInfo } = {}) {
     const tabListeners = [];
     const workerMsgListeners = [];
     const commandListeners = [];
@@ -165,6 +187,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startOnSh
     else if (startOnWatchPage) yt.openVideo();
     if (duration !== undefined) yt.page.video.duration = duration;
     if (startInAd) yt.startAd();
+    if (videoInfo) yt.page.videoInfo.movie_player = { videoId: "abc", ...videoInfo };
     const contentChrome = {
         runtime: {
             onMessage: { addListener: (f) => tabListeners.push(f) },
@@ -182,6 +205,8 @@ export async function setup(storedSettings, { startOnWatchPage = true, startOnSh
     const onError = (e) => { e.preventDefault(); errors.push(e.reason); };
     globalThis.addEventListener("unhandledrejection", onError);
     try {
+        // page.js runs in the page's own world, without the shared constants
+        new Function("document", await read("scripts/page.js"))(yt.document);
         new Function("chrome", "document", "fetch", "MutationObserver", "location", await withShared("scripts/content.js"))(
             contentChrome, yt.document, fetch, yt.MutationObserver, yt.page.location);
     } catch (e) {
@@ -203,9 +228,10 @@ export async function setup(storedSettings, { startOnWatchPage = true, startOnSh
     // What YouTube does when it opens another video without a page load: it
     // empties the video (readyState 0, firing ratechange, and sometimes
     // resetting the speed to its own), then loads the new one
-    const loadVideo = (id, duration, { youtubeResetsSpeedTo } = {}) => {
+    const loadVideo = (id, duration, { youtubeResetsSpeedTo, videoInfo } = {}) => {
         const video = yt.page.video;
         yt.page.location.search = `?v=${id}`;
+        yt.page.videoInfo.movie_player = videoInfo && { videoId: id, ...videoInfo };
         video.readyState = 0;
         video.dispatch("ratechange");
         if (youtubeResetsSpeedTo !== undefined) {
@@ -220,9 +246,10 @@ export async function setup(storedSettings, { startOnWatchPage = true, startOnSh
     const openShort = async (id) => { yt.openShort(id); await settle(); };
     const goToWatchPage = async (id) => { yt.goToWatchPage(id); await settle(); };
     // Swiping to the next Short: same <video>, new id and duration
-    const swipeToShort = (id, duration) => {
+    const swipeToShort = (id, duration, videoInfo) => {
         const video = yt.page.shortsVideo;
         yt.page.location.pathname = `/shorts/${id}`;
+        yt.page.videoInfo["shorts-player"] = videoInfo && { videoId: id, ...videoInfo };
         video.readyState = 0;
         video.dispatch("ratechange");
         video.duration = duration;
@@ -283,11 +310,13 @@ export async function setupSettingsUI(storedSettings, inputs) {
     // The "Saved" toast's timer never fires in tests
     const setTimeout = () => 0;
     const clearTimeout = () => {};
-    new Function("chrome", "document", "setTimeout", "clearTimeout", await withShared("ui/settings.js"))(
+    const api = new Function("chrome", "document", "setTimeout", "clearTimeout",
+        `${await withShared("ui/settings.js")}
+return { onSettingsRendered };`)(
         chrome, document, setTimeout, clearTimeout);
     await settle();
     return {
-        elements, document, sent,
+        elements, document, sent, onSettingsRendered: api.onSettingsRendered,
         // Another page (or the worker) saving settings
         storageChanged: (settings) => storageListeners.forEach((f) =>
             f({ settings: { newValue: structuredClone(settings) } }, "sync")),

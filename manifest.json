@@ -26,6 +26,14 @@
     },
     "content_scripts": [
         {
+          "js": ["scripts/page.js"],
+          "matches": [
+            "https://www.youtube.com/*"
+          ],
+          "run_at": "document_start",
+          "world": "MAIN"
+        },
+        {
           "js": ["scripts/sharedObjects.js", "scripts/content.js"],
           "matches": [
             "https://www.youtube.com/*"

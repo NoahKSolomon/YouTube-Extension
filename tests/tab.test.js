@@ -1,18 +1,18 @@
 // Run with: deno test --allow-read tests/
 // The popup reads and sets the current tab's speed through the content script
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals, assertObjectMatch } from "jsr:@std/assert@1";
 import { setup, SETTINGS } from "./harness.js";
 
 Deno.test("the popup can read this tab's speed", async () => {
     const t = await setup(SETTINGS(2, 0.25));
-    assertEquals(t.send({ action: "getTabState" }), { hasVideo: true, speed: 2, reason: null });
+    assertObjectMatch(t.send({ action: "getTabState" }), { hasVideo: true, speed: 2, reason: null });
     t.cleanup();
 });
 
 Deno.test("during an ad the popup sees the video's speed, not the ad's", async () => {
     const t = await setup(SETTINGS(2, 0.25));
     await t.startAd();
-    assertEquals(t.send({ action: "getTabState" }), { hasVideo: true, speed: 2, reason: null });
+    assertObjectMatch(t.send({ action: "getTabState" }), { hasVideo: true, speed: 2, reason: null });
     t.cleanup();
 });
 
@@ -62,13 +62,13 @@ Deno.test("a new default speed applies to a tab whose speed was not changed", as
 // The popup explains why a video is at 1x
 Deno.test("the popup is told a short video is kept at 1x", async () => {
     const t = await setup(SETTINGS(2, 0.25, { cutoff_in_seconds: 60 }), { duration: 30 });
-    assertEquals(t.send({ action: "getTabState" }), { hasVideo: true, speed: 1, reason: "short" });
+    assertObjectMatch(t.send({ action: "getTabState" }), { hasVideo: true, speed: 1, reason: "short" });
     t.cleanup();
 });
 
 Deno.test("the popup is told a livestream is kept at 1x", async () => {
     const t = await setup(SETTINGS(2, 0.25), { duration: Infinity });
-    assertEquals(t.send({ action: "getTabState" }), { hasVideo: true, speed: 1, reason: "livestream" });
+    assertObjectMatch(t.send({ action: "getTabState" }), { hasVideo: true, speed: 1, reason: "livestream" });
     t.cleanup();
 });
 

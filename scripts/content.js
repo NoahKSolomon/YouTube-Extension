@@ -77,26 +77,70 @@ function currentVideoId() {
     return shortsId ? shortsId[1] : new URLSearchParams(location.search).get("v");
 }
 
-// Why this video stays at 1x: "short" (at or under the cutoff) or
-// "livestream" (unless enabled), or null. Livestreams have an infinite
-// duration. A video whose speed the user changed has no reason.
-function exclusionReason() {
-    if (speedChangedOnVideoId === currentVideoId()) {
-        return null;
+// The active video's channel and category, from YouTube's player data via
+// scripts/page.js, or null if that data isn't for the current video yet.
+// page.js answers during dispatchEvent, so this is synchronous.
+function videoInfo() {
+    let info = null;
+    const receive = (event) => {
+        info = JSON.parse(event.detail);
+    };
+    document.addEventListener(PAGE_EVENTS.VIDEO_INFO, receive);
+    document.dispatchEvent(new CustomEvent(PAGE_EVENTS.GET_VIDEO_INFO, {detail: player.id}));
+    document.removeEventListener(PAGE_EVENTS.VIDEO_INFO, receive);
+    return info?.videoId === currentVideoId() ? info : null;
+}
+
+// A channel rule beats a category rule
+function matchingRule(info) {
+    const rules = SETTINGS[KEYS.RULES] ?? [];
+    return rules.find((rule) => rule.type === "channel" && rule.value === info?.channelId)
+        ?? rules.find((rule) => rule.type === "category" && rule.value === info?.category)
+        ?? null;
+}
+
+// The speed this video gets unless the user changes it, and why: a
+// "channel" or "category" rule (with its name as detail), "livestream"
+// (unless enabled) or "short" (at or under the cutoff), both kept at 1x, or
+// no reason for the default. Livestreams have an infinite duration.
+function automaticSpeed() {
+    const rule = matchingRule(videoInfo());
+    if (rule) {
+        return {speed: rule.speed, reason: rule.type, detail: rule.label ?? rule.value};
     }
-    if (video.duration === Infinity) {
-        return SETTINGS[KEYS.LIVESTREAM] ? null : "livestream";
+    if (video.duration === Infinity && !SETTINGS[KEYS.LIVESTREAM]) {
+        return {speed: 1, reason: "livestream"};
     }
     const cutoff = SETTINGS[KEYS.CUTOFF];
-    return cutoff > 0 && video.duration <= cutoff ? "short" : null;
+    if (cutoff > 0 && video.duration <= cutoff) {
+        return {speed: 1, reason: "short"};
+    }
+    return {speed: tabSpeed ?? SETTINGS[KEYS.DEFAULT_SPEED], reason: null};
+}
+
+function speedChangedOnThisVideo() {
+    return speedChangedOnVideoId === currentVideoId();
 }
 
 // The video's own speed, ignoring any ad playing over it
 function videoSpeed() {
-    if (exclusionReason()) {
-        return 1;
+    return speedChangedOnThisVideo() ? tabSpeed : automaticSpeed().speed;
+}
+
+function tabState(currentSpeed) {
+    if (!video) {
+        return {hasVideo: false, speed: currentSpeed, reason: null};
     }
-    return tabSpeed ?? SETTINGS[KEYS.DEFAULT_SPEED];
+    const info = videoInfo();
+    const {reason, detail} = speedChangedOnThisVideo() ? {reason: null} : automaticSpeed();
+    return {
+        hasVideo: true,
+        speed: currentSpeed,
+        reason,
+        reasonDetail: detail ?? null,
+        channel: info ? {id: info.channelId, name: info.channelName} : null,
+        category: info?.category ?? null,
+    };
 }
 
 function targetSpeed() {
@@ -284,7 +328,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // During an ad the video is at AD_SPEED, so use the stored speed
     const currentSpeed = video && !isSkippingAd() ? video.playbackRate : tabSpeed ?? SETTINGS[KEYS.DEFAULT_SPEED];
     if (message.action === MESSAGES.GET_TAB_STATE) {
-        sendResponse({hasVideo: Boolean(video), speed: currentSpeed, reason: video ? exclusionReason() : null});
+        sendResponse(tabState(currentSpeed));
         return;
     }
     switch(message.action) {

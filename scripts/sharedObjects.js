@@ -10,7 +10,8 @@ const KEYS = {
     LIVESTREAM: "enabled_for_livestream",
     SKIP_ADS: "skip_ads",
     SAVE_SPEED_CHANGES: "save_speed_changes",
-    SHORTS: "enabled_for_shorts"
+    SHORTS: "enabled_for_shorts",
+    RULES: "speed_rules"
 };
 
 // Chrome's supported playbackRate range. Setting 0 stalls the video, and
@@ -25,7 +26,24 @@ const DEFAULT_SETTINGS = {
     "enabled_for_livestream": false,
     "skip_ads": true,
     "save_speed_changes": false,
-    "enabled_for_shorts": false
+    "enabled_for_shorts": false,
+    // Each {type: "channel" | "category", value: channel id or category,
+    // label: channel name (channel rules only), speed}
+    "speed_rules": []
+};
+
+// YouTube's video categories, as its player data names them
+const CATEGORIES = [
+    "Autos & Vehicles", "Comedy", "Education", "Entertainment", "Film & Animation",
+    "Gaming", "Howto & Style", "Music", "News & Politics", "Nonprofits & Activism",
+    "People & Blogs", "Pets & Animals", "Science & Technology", "Sports", "Travel & Events"
+];
+
+// Events between the content script and scripts/page.js, which has its own
+// copy of these names since it runs in the page's world
+const PAGE_EVENTS = {
+    GET_VIDEO_INFO: "ytpbs-get-video-info",
+    VIDEO_INFO: "ytpbs-video-info"
 };
 
 const COMMANDS = {

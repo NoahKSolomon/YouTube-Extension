@@ -47,3 +47,14 @@ Deno.test("changes saved elsewhere don't overwrite the field being edited", asyn
     ui.storageChanged(SETTINGS(3, 0.25));
     assertEquals(ui.elements.defaultSpeed.value, "1.2");
 });
+
+// The page's own script (e.g. the rule list) can register after the
+// settings have already been drawn
+Deno.test("a callback registered after the first render still runs", async () => {
+    const ui = await setupSettingsUI(SETTINGS(2, 0.25), INPUTS);
+    let calls = 0;
+    ui.onSettingsRendered(() => calls++);
+    assertEquals(calls, 1);
+    ui.storageChanged(SETTINGS(3, 0.25));
+    assertEquals(calls, 2);
+});

@@ -212,6 +212,21 @@ a:hover {
 }
 
 
+.select {
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text);
+    font: inherit;
+}
+
+.select:hover {
+    border-color: var(--text-secondary);
+}
+
+
 /* BUTTONS */
 
 .icon-button {
@@ -241,6 +256,19 @@ a:hover {
 
 .pill-button:hover {
     background: var(--surface-hover);
+}
+
+.pill-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.pill-button.small {
+    flex: none;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 14px;
+    font-size: 12px;
 }
 
 
@@ -302,6 +330,16 @@ a:hover {
 
 .section + .section {
     border-top: 1px solid var(--divider);
+}
+
+.compact-row {
+    min-height: 32px;
+}
+
+.channel-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tab-speed {

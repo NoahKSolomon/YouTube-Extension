@@ -51,7 +51,7 @@ Deno.test("a hotkey on a tab without a content script does not throw", async () 
 // The popup and the settings page can both be open, so each sends only the
 // setting that changed
 Deno.test("saving one setting keeps the others", async () => {
-    let stored = { playback_speed: 2, increment: 0.5, cutoff_in_seconds: 60, enabled_for_livestream: true, skip_ads: false, save_speed_changes: false, enabled_for_shorts: false };
+    let stored = { playback_speed: 2, increment: 0.5, cutoff_in_seconds: 60, enabled_for_livestream: true, skip_ads: false, save_speed_changes: false, enabled_for_shorts: false, speed_rules: [] };
     const messageListeners = [];
     const chrome = {
         storage: { sync: {
@@ -68,13 +68,13 @@ Deno.test("saving one setting keeps the others", async () => {
 
     messageListeners.forEach((l) => l({ action: "updateSettings", settings: { playback_speed: 3 } }, {}, () => {}));
     await new Promise((r) => setTimeout(r, 0));
-    assertEquals(stored, { playback_speed: 3, increment: 0.5, cutoff_in_seconds: 60, enabled_for_livestream: true, skip_ads: false, save_speed_changes: false, enabled_for_shorts: false });
+    assertEquals(stored, { playback_speed: 3, increment: 0.5, cutoff_in_seconds: 60, enabled_for_livestream: true, skip_ads: false, save_speed_changes: false, enabled_for_shorts: false, speed_rules: [] });
 });
 
 // Chrome stops the worker when idle; on restart, reading storage takes a
 // moment, and pages asking in the meantime must still get the saved settings
 Deno.test("a page asking right after the worker wakes gets the saved settings", async () => {
-    const stored = { playback_speed: 2.5, increment: 0.5, cutoff_in_seconds: 0, enabled_for_livestream: false, skip_ads: false, save_speed_changes: false, enabled_for_shorts: false };
+    const stored = { playback_speed: 2.5, increment: 0.5, cutoff_in_seconds: 0, enabled_for_livestream: false, skip_ads: false, save_speed_changes: false, enabled_for_shorts: false, speed_rules: [] };
     const messageListeners = [];
     const chrome = {
         storage: { sync: {

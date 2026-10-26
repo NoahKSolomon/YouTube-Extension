@@ -8,7 +8,8 @@ const scriptSrcs = (html) => [...html.matchAll(/<script src="([^"]+)"/g)].map((m
 
 Deno.test("the content script loads the shared constants first", async () => {
     const manifest = JSON.parse(await read("manifest.json"));
-    assertEquals(manifest.content_scripts[0].js, ["scripts/sharedObjects.js", "scripts/content.js"]);
+    const entry = manifest.content_scripts.find((cs) => cs.js.includes("scripts/content.js"));
+    assertEquals(entry.js, ["scripts/sharedObjects.js", "scripts/content.js"]);
 });
 
 Deno.test("the worker loads the shared constants with importScripts", async () => {

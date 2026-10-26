@@ -69,6 +69,19 @@ function showError(input, message) {
     document.getElementById(`${input.id}-error`).textContent = message;
 }
 
+const renderedCallbacks = [];
+let settingsRendered = false;
+
+// For page parts drawn from settings by hand, like the speed rule list. Runs
+// straight away if the settings were already drawn, since the page's script
+// can load after that happens.
+function onSettingsRendered(callback) {
+    renderedCallbacks.push(callback);
+    if (settingsRendered) {
+        callback();
+    }
+}
+
 // Show the current settings in every input, except one being edited
 function renderSettings() {
     document.querySelectorAll("[data-setting]").forEach((input) => {
@@ -83,6 +96,8 @@ function renderSettings() {
         input.value = SETTING_KINDS[input.dataset.kind].format(SETTINGS[key]);
         showError(input, "");
     });
+    settingsRendered = true;
+    renderedCallbacks.forEach((callback) => callback());
 }
 
 function bindSettings() {
