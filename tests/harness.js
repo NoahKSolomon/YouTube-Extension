@@ -108,11 +108,12 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     const commandListeners = [];
     const tab = { id: 1, url: "https://www.youtube.com/watch?v=abc" };
     const badges = {};
+    let savedSettings;
 
     const chrome = {
         storage: { sync: {
             get: async () => (storedSettings ? { settings: storedSettings } : {}),
-            set: async () => {},
+            set: async (items) => { savedSettings = structuredClone(items.settings); },
         }},
         tabs: {
             query: (q, cb) => { const r = [tab]; return cb ? cb(r) : Promise.resolve(r); },
@@ -198,7 +199,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
         await settle();
     };
     return {
-        page: yt.page, badge: () => badges[tab.id], fireCommand, openVideo, startAd, endAd,
+        page: yt.page, badge: () => badges[tab.id], saved: () => savedSettings, settle, fireCommand, openVideo, startAd, endAd,
         errors, fetches, cleanup, send, loadVideo, pickYouTubeSpeed, tabListeners, commandListeners,
     };
 }

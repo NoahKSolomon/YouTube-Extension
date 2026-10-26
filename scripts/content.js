@@ -116,6 +116,22 @@ function setVideoSpeed(speed) {
     video.playbackRate = speed;
 }
 
+// The user changed this video's speed with a hotkey, the popup or YouTube's
+// menu. It stays for this tab (even on a short video or livestream), and
+// becomes the saved default if "Remember speed changes" is on.
+function userChangedSpeed(speed) {
+    tabSpeed = normalizeSpeed(speed);
+    speedChangedOnVideoId = currentVideoId();
+    if (SETTINGS[KEYS.SAVE_SPEED_CHANGES]) {
+        SETTINGS[KEYS.DEFAULT_SPEED] = tabSpeed;
+        try {
+            chrome.runtime.sendMessage({action: MESSAGES.UPDATE_SETTINGS, settings: {[KEYS.DEFAULT_SPEED]: tabSpeed}});
+        } catch {
+            // Cut off from the extension after a reload; nothing to save to
+        }
+    }
+}
+
 // The user picked a speed in YouTube's menu (or with Shift+< / Shift+>), so
 // keep it like a hotkey change. YouTube also fires ratechange while swapping
 // in the next video or ad, before it has loaded (readyState 0), and those
@@ -125,9 +141,8 @@ function adoptYouTubeSpeed() {
             || player.classList.contains("ad-showing")) {
         return;
     }
-    tabSpeed = normalizeSpeed(video.playbackRate);
     appliedSpeed = video.playbackRate;
-    speedChangedOnVideoId = currentVideoId();
+    userChangedSpeed(video.playbackRate);
     refreshSettingsHTML();
     reportSpeed();
 }
@@ -241,18 +256,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Step from the video's actual rate, since YouTube can change it
         // without the extension knowing
         case COMMANDS.INCREMENT:
-            tabSpeed = normalizeSpeed(currentSpeed + SETTINGS[KEYS.INCREMENT]);
-            speedChangedOnVideoId = currentVideoId();
+            userChangedSpeed(currentSpeed + SETTINGS[KEYS.INCREMENT]);
             break;
         case COMMANDS.DECREMENT:
-            tabSpeed = normalizeSpeed(currentSpeed - SETTINGS[KEYS.INCREMENT]);
-            speedChangedOnVideoId = currentVideoId();
+            userChangedSpeed(currentSpeed - SETTINGS[KEYS.INCREMENT]);
             break;
         case COMMANDS.SET_SPEED_1:
         case COMMANDS.SET_SPEED_DEFAULT:
         case MESSAGES.SET_TAB_SPEED:
-            tabSpeed = normalizeSpeed(message.speed);
-            speedChangedOnVideoId = currentVideoId();
+            userChangedSpeed(message.speed);
             break;
 
     }
