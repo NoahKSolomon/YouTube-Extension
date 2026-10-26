@@ -11,13 +11,6 @@ const settingsLoaded = chrome.storage.sync.get(["settings"])
 
 // FUNCTIONS
 
-// Update the settings chache if needed and return the most up to date settings
-function getSettings() {
-    console.log("sending settings");
-    console.log(settingsCache);
-    return settingsCache;
-}
-
 // Tabs opened before the extension was (re)loaded have no content script until
 // refreshed, and sending to them rejects. Nothing is listening, so ignore it.
 function sendMessageToTab(tabId, message) {
@@ -56,7 +49,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     switch(message.action) {
         case MESSAGES.GET_SETTINGS:
-            settingsLoaded.then(() => sendResponse(getSettings()));
+            settingsLoaded.then(() => sendResponse(settingsCache));
             // Keeps the message channel open for the response above
             return true;
         case MESSAGES.UPDATE_SETTINGS:
