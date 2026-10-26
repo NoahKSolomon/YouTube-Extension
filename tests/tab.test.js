@@ -37,3 +37,24 @@ Deno.test("setting this tab's speed overrides the cutoff for that video", async 
     assertEquals(t.page.video.playbackRate, 1.5);
     t.cleanup();
 });
+
+// The worker sends every setting when one changes, including the default speed
+const refresh = (t, settings) =>
+    t.tabListeners.forEach((l) => l({ action: "refreshSettings", settings }, {}, () => {}));
+
+Deno.test("changing a setting keeps this tab's hotkey speed", async () => {
+    const t = await setup(SETTINGS(2, 0.25));
+    await t.fireCommand("increment-speed");
+    refresh(t, SETTINGS(2, 0.25, { skip_ads: false }));
+    assertEquals(t.page.video.playbackRate, 2.25);
+    t.loadVideo("next", 600);
+    assertEquals(t.page.video.playbackRate, 2.25);
+    t.cleanup();
+});
+
+Deno.test("a new default speed applies to a tab whose speed was not changed", async () => {
+    const t = await setup(SETTINGS(2, 0.25));
+    refresh(t, SETTINGS(1.5, 0.25));
+    assertEquals(t.page.video.playbackRate, 1.5);
+    t.cleanup();
+});
