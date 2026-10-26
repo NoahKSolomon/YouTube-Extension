@@ -18,6 +18,9 @@ const KEYS = {
 // anything else outside the range throws.
 const MIN_SPEED = 0.0625;
 const MAX_SPEED = 16;
+// The range YouTube's own speed setting accepts; it caps anything else
+const YOUTUBE_MIN_SPEED = 0.25;
+const YOUTUBE_MAX_SPEED = 2;
 
 const DEFAULT_SETTINGS = {
     "playback_speed": 1.0,
@@ -43,7 +46,8 @@ const CATEGORIES = [
 // copy of these names since it runs in the page's world
 const PAGE_EVENTS = {
     GET_VIDEO_INFO: "ytpbs-get-video-info",
-    VIDEO_INFO: "ytpbs-video-info"
+    VIDEO_INFO: "ytpbs-video-info",
+    SET_YOUTUBE_SPEED: "ytpbs-set-youtube-speed"
 };
 
 const COMMANDS = {

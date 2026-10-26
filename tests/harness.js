@@ -31,6 +31,8 @@ function fakeYouTubePage() {
         location: { pathname: "/watch", search: "?v=abc" },
         // What each player's getPlayerResponse() describes, by player id
         videoInfo: {},
+        // The speed YouTube's own menu shows, by player id
+        youtubeSpeed: {},
     };
 
     function makeVideo() {
@@ -93,6 +95,12 @@ function fakeYouTubePage() {
         return {
             id, classList, isConnected: true,
             querySelector: (selector) => contents()[selector] ?? null,
+            // Like YouTube's: caps to 0.25-2x, sets the video and its menu
+            setPlaybackRate: (rate) => {
+                const capped = Math.min(2, Math.max(0.25, rate));
+                page.youtubeSpeed[id] = capped;
+                contents()["video"].playbackRate = capped;
+            },
             // YouTube's player data, as read by page.js
             getPlayerResponse: () => {
                 const info = page.videoInfo[id];

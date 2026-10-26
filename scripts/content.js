@@ -167,9 +167,20 @@ function reportSpeed() {
     }
 }
 
+// Within YouTube's range, the speed goes through YouTube's player (via
+// page.js) so its speed menu shows it instead of "Normal". Outside it, like
+// the ads' 16x, the video is set directly, leaving YouTube's menu as it was.
+// Either way, the video ends up at exactly this speed.
 function setVideoSpeed(speed) {
     appliedSpeed = speed;
-    video.playbackRate = speed;
+    if (speed >= YOUTUBE_MIN_SPEED && speed <= YOUTUBE_MAX_SPEED) {
+        document.dispatchEvent(new CustomEvent(PAGE_EVENTS.SET_YOUTUBE_SPEED, {
+            detail: JSON.stringify({player: player.id, speed})
+        }));
+    }
+    if (video.playbackRate !== speed) {
+        video.playbackRate = speed;
+    }
 }
 
 // The user changed this video's speed with a hotkey, the popup or YouTube's

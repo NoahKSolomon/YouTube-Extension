@@ -1,5 +1,5 @@
-// Runs in the page's own JavaScript world (manifest "world": "MAIN") to read
-// YouTube's player data, which the content script can't reach. The content
+// Runs in the page's own JavaScript world (manifest "world": "MAIN") to use
+// YouTube's player, which the content script can't reach. The content
 // script asks with a "ytpbs-get-video-info" event naming the player element,
 // and this answers straight away with "ytpbs-video-info". The answer is JSON
 // because objects don't cross between the two worlds.
@@ -22,4 +22,12 @@ document.addEventListener("ytpbs-get-video-info", (event) => {
         isLive: Boolean(details.isLive),
     } : null;
     document.dispatchEvent(new CustomEvent("ytpbs-video-info", {detail: JSON.stringify(info)}));
+});
+
+// Sets the speed through YouTube's player, so its own speed menu (and its
+// Shift+< / Shift+> steps) match. The content script only asks for speeds
+// YouTube accepts (0.25-2x), since it caps anything else.
+document.addEventListener("ytpbs-set-youtube-speed", (event) => {
+    const {player, speed} = JSON.parse(event.detail);
+    document.getElementById(player)?.setPlaybackRate?.(speed);
 });
