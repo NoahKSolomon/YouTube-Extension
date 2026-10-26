@@ -1,13 +1,12 @@
 import {KEYS, DEFAULT_SETTINGS, COMMANDS, MESSAGES} from "./sharedObjects.js"
 
 const settingsCache = structuredClone(DEFAULT_SETTINGS);
-chrome.storage.sync.get(["settings"])
+// Chrome stops this worker when idle and restarts it on the next event, so
+// everything that reads or changes settings waits for storage to be read
+// first. Otherwise it would hand out (or save over) the defaults.
+const settingsLoaded = chrome.storage.sync.get(["settings"])
 .then(result => {
-    if (result.settings) {
-        console.log("settings updates");
-        Object.assign(settingsCache, result.settings);
-        sendMessageToAllTabs({action: MESSAGES.REFRESH_SETTINGS, settings: settingsCache});
-    }
+    Object.assign(settingsCache, result.settings);
 });
 
 // FUNCTIONS
@@ -46,6 +45,7 @@ function updateSettings(newSettings) {
 // EVENT LISTENERS
 
 chrome.commands.onCommand.addListener(async (command) => {
+    await settingsLoaded;
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     sendMessageToTab(tab.id, {
         action: command, 
@@ -56,15 +56,16 @@ chrome.commands.onCommand.addListener(async (command) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     switch(message.action) {
         case MESSAGES.GET_ALL_CONFIGS:
-            sendResponse({
+            settingsLoaded.then(() => sendResponse({
                 keys: KEYS,
                 settings: getSettings(),
                 commands: COMMANDS,
                 messages: MESSAGES
-            });
-            break;
+            }));
+            // Keeps the message channel open for the response above
+            return true;
         case MESSAGES.UPDATE_SETTINGS:
-            updateSettings(message.settings);
+            settingsLoaded.then(() => updateSettings(message.settings));
             break;
     }
 });

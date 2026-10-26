@@ -71,5 +71,30 @@ Deno.test("saving one setting keeps the others", async () => {
     await new Promise((r) => setTimeout(r, 0));
 
     messageListeners.forEach((l) => l({ action: "updateSettings", settings: { playback_speed: 3 } }, {}, () => {}));
+    await new Promise((r) => setTimeout(r, 0));
     assertEquals(stored, { playback_speed: 3, increment: 0.5, cutoff_in_seconds: 60, enabled_for_livestream: true, skip_ads: false });
+});
+
+// Chrome stops the worker when idle; on restart, reading storage takes a
+// moment, and pages asking in the meantime must still get the saved settings
+Deno.test("a page asking right after the worker wakes gets the saved settings", async () => {
+    const stored = { playback_speed: 2.5, increment: 0.5, cutoff_in_seconds: 0, enabled_for_livestream: false, skip_ads: false };
+    const messageListeners = [];
+    const chrome = {
+        storage: { sync: {
+            get: () => new Promise((r) => setTimeout(() => r({ settings: stored }), 20)),
+            set: async () => {},
+        }},
+        tabs: { query: (q, cb) => cb([]), sendMessage: () => Promise.resolve() },
+        commands: { onCommand: { addListener() {} } },
+        runtime: { onMessage: { addListener: (f) => messageListeners.push(f) } },
+    };
+    const shared = await import(new URL("../scripts/sharedObjects.js", import.meta.url));
+    const workerSrc = (await read("scripts/worker.js")).replace(/^import .*$/m, "");
+    new Function("chrome", "KEYS", "DEFAULT_SETTINGS", "COMMANDS", "MESSAGES", workerSrc)(
+        chrome, shared.KEYS, shared.DEFAULT_SETTINGS, shared.COMMANDS, shared.MESSAGES);
+
+    const response = new Promise((resolve) =>
+        messageListeners.forEach((l) => l({ action: "getAllConfigs" }, {}, resolve)));
+    assertEquals((await response).settings, stored);
 });
