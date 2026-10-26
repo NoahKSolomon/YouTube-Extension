@@ -3,7 +3,15 @@
 // video if applicable
 
 // Set once the watch page player exists, which may be after this script loads
+let player = null;
 let video = null;
+
+// Chrome's maximum playbackRate
+const AD_SPEED = 16;
+// Whether an ad is currently being sped through, and whether the extension
+// muted it (so a video the user muted stays muted afterwards)
+let skippingAd = false;
+let mutedForAd = false;
 
 const KEYS = {};
 const SETTINGS = {};
@@ -38,11 +46,44 @@ function getFormattedTrueTime(timeToConvertInSeconds, playbackRate) {
     return formattedTime;
 }
 
+// Ads play in the same <video> as the video, and YouTube marks the player
+// with "ad-showing" while one is on
+function isSkippingAd() {
+    return Boolean(SETTINGS[KEYS.SKIP_ADS] && player?.classList.contains("ad-showing"));
+}
+
 // Update the actual page elements with the settings
 function updatePageSettings() {
     if (video) {
-        video.playbackRate = SETTINGS[KEYS.DEFAULT_SPEED];
+        video.playbackRate = isSkippingAd() ? AD_SPEED : SETTINGS[KEYS.DEFAULT_SPEED];
     }
+}
+
+// Speed through and mute ads, and restore the video's speed and sound once
+// the ad is over
+function handleAds() {
+    if (!video) {
+        return;
+    }
+    const adShowing = isSkippingAd();
+    if (adShowing) {
+        if (!skippingAd) {
+            mutedForAd = !video.muted;
+        }
+        // YouTube unmutes when the next ad in a break loads
+        if (!video.muted) {
+            video.muted = true;
+        }
+        if (video.playbackRate !== AD_SPEED) {
+            video.playbackRate = AD_SPEED;
+        }
+    } else if (skippingAd) {
+        if (mutedForAd) {
+            video.muted = false;
+        }
+        updatePageSettings();
+    }
+    skippingAd = adShowing;
 }
 
 async function retrieveHTMLToInject() {
@@ -74,6 +115,8 @@ function attachEventListeners() {
     video.addEventListener("timeupdate", refreshSettingsHTML);
     video.addEventListener("loadedmetadata", updatePageSettings);
     video.addEventListener("loadedmetadata", refreshSettingsHTML);
+    // YouTube unmutes when the next ad in a break loads
+    video.addEventListener("volumechange", handleAds);
 }
 
 // YouTube is a single page app, so the player may not exist when this script
@@ -86,8 +129,14 @@ function attachToPlayer() {
     const playerVideo = document.querySelector("#movie_player video");
     if (playerVideo && playerVideo !== video) {
         video = playerVideo;
+        player = document.querySelector("#movie_player");
         attachEventListeners();
         updatePageSettings();
+        // YouTube toggles the player's class when an ad starts and ends
+        new MutationObserver(handleAds).observe(player, {
+            attributes: true, attributeFilter: ["class"]
+        });
+        handleAds();
     }
     const defaultDurationElem = document.querySelector("#movie_player .ytp-time-duration");
     if (defaultDurationElem && !INJECTED_ELEMENTS.TIME?.isConnected) {
@@ -99,7 +148,8 @@ function attachToPlayer() {
 
 // EVENT LISTENERS
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    const currentSpeed = video ? video.playbackRate : SETTINGS[KEYS.DEFAULT_SPEED];
+    // During an ad the video is at AD_SPEED, so step from the stored speed
+    const currentSpeed = video && !isSkippingAd() ? video.playbackRate : SETTINGS[KEYS.DEFAULT_SPEED];
     switch(message.action) {
         case MESSAGES.REFRESH_SETTINGS:
             Object.assign(SETTINGS, message.settings);
@@ -116,9 +166,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case COMMANDS.SET_SPEED_DEFAULT:
             SETTINGS[KEYS.DEFAULT_SPEED] = message.speed;
             break;
-        
+
     }
     updatePageSettings();
+    handleAds();
     refreshSettingsHTML();
 });
 

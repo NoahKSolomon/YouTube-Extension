@@ -9,6 +9,7 @@ const cutoffMinutes = document.getElementById("cutoffMinutesInput");
 const cutoffSeconds = document.getElementById("cutoffSecondsInput");
 const cutoffDisplay = document.getElementById("cutoffDisplay");
 const livestreamInput = document.getElementById("enableForLivestreamValue");
+const skipAdsInput = document.getElementById("skipAdsValue");
 
 const KEYS = {};
 const SETTINGS = {};
@@ -37,6 +38,8 @@ function updateSettingsHTML() {
     }
     // Livestream speed
     livestreamInput.checked = SETTINGS[KEYS.LIVESTREAM];
+    // Skip ads
+    skipAdsInput.checked = SETTINGS[KEYS.SKIP_ADS];
 }
 
 function refreshCurrentTabSpeed(speed) {
@@ -94,6 +97,11 @@ document.getElementById("cutoffButton").addEventListener("click", () => {
 
 document.getElementById("enableForLivestreamValue").addEventListener("click", () => {
     SETTINGS[KEYS.CUTOFF] = Boolean(document.getElementById("enableForLivestreamValue").value);
+    chrome.runtime.sendMessage({action: MESSAGES.UPDATE_SETTINGS, settings: SETTINGS});
+});
+
+skipAdsInput.addEventListener("change", () => {
+    SETTINGS[KEYS.SKIP_ADS] = skipAdsInput.checked;
     chrome.runtime.sendMessage({action: MESSAGES.UPDATE_SETTINGS, settings: SETTINGS});
 });
 
