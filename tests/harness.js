@@ -197,5 +197,57 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     };
 }
 
+// Loads ui/settings.js (used by the popup and the settings page) against a
+// fake page holding the given setting inputs
+export async function setupSettingsUI(storedSettings, inputs) {
+    const sent = [];
+    const storageListeners = [];
+    const elements = {};
+    const makeElement = (props) => {
+        const listeners = {};
+        const element = {
+            value: "", checked: false, textContent: "", attributes: {}, dataset: {},
+            classList: { add() {}, remove() {} },
+            setAttribute: (name, value) => { element.attributes[name] = value; },
+            addEventListener: (type, f) => (listeners[type] ??= []).push(f),
+            dispatch: (type) => (listeners[type] ?? []).forEach((f) => f()),
+            ...props,
+        };
+        elements[element.id] = element;
+        return element;
+    };
+    const settingInputs = inputs.map(({ id, setting, kind, type = kind ? "text" : "checkbox" }) => {
+        makeElement({ id: `${id}-error` });
+        return makeElement({ id, type, dataset: { setting, ...(kind && { kind }) } });
+    });
+    makeElement({ id: "toast" });
+    const document = {
+        activeElement: null,
+        querySelectorAll: (selector) => (selector === "[data-setting]" ? settingInputs : []),
+        getElementById: (id) => elements[id] ?? null,
+    };
+    const chrome = {
+        runtime: {
+            sendMessage: async (message) => {
+                sent.push(message);
+                return message.action === "getSettings" ? structuredClone(storedSettings) : undefined;
+            },
+        },
+        storage: { onChanged: { addListener: (f) => storageListeners.push(f) } },
+    };
+    // The "Saved" toast's timer never fires in tests
+    const setTimeout = () => 0;
+    const clearTimeout = () => {};
+    new Function("chrome", "document", "setTimeout", "clearTimeout", await withShared("ui/settings.js"))(
+        chrome, document, setTimeout, clearTimeout);
+    await settle();
+    return {
+        elements, document, sent,
+        // Another page (or the worker) saving settings
+        storageChanged: (settings) => storageListeners.forEach((f) =>
+            f({ settings: { newValue: structuredClone(settings) } }, "sync")),
+    };
+}
+
 export const SETTINGS = (speed, increment, extra = {}) =>
     ({ playback_speed: speed, increment, cutoff_in_seconds: 0, enabled_for_livestream: false, skip_ads: true, ...extra });
