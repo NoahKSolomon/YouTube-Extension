@@ -22,8 +22,18 @@ function fakeYouTubePage() {
 
     function makeVideo() {
         const listeners = {};
+        let playbackRate = 1;
         return {
-            playbackRate: 1, duration: 600, currentTime: 0, muted: false, isConnected: true,
+            // Like Chrome: 0 is allowed (it stalls the video), other rates
+            // outside 0.0625-16 throw
+            get playbackRate() { return playbackRate; },
+            set playbackRate(rate) {
+                if (rate !== 0 && (rate < 0.0625 || rate > 16)) {
+                    throw new DOMException(`The provided playback rate (${rate}) is not in the supported playback range.`, "NotSupportedError");
+                }
+                playbackRate = rate;
+            },
+            duration: 600, currentTime: 0, muted: false, isConnected: true,
             addEventListener: (type, f) => (listeners[type] ??= []).push(f),
             dispatch: (type) => (listeners[type] ?? []).forEach((f) => f()),
         };

@@ -82,3 +82,31 @@ Deno.test("settings broadcasts reach YouTube tabs that are not on /watch", async
     const [, pattern] = worker.match(/tab\.url\.match\('([^']+)'\)/);
     assert(new RegExp(pattern).test("https://www.youtube.com/"), `worker skips tabs on youtube.com/`);
 });
+
+// Chrome plays from 0.0625x to 16x; 0 stalls the video and anything else
+// outside that throws
+Deno.test("decrementing stops at the slowest speed instead of 0", async () => {
+    const t = await setup(SETTINGS(1, 1));
+    await t.fireCommand("decrement-speed");
+    assertEquals(t.page.video.playbackRate, 0.0625);
+    await t.fireCommand("decrement-speed");
+    assertEquals(t.page.video.playbackRate, 0.0625);
+    assertEquals(t.errors, []);
+    t.cleanup();
+});
+
+Deno.test("incrementing stops at the fastest speed", async () => {
+    const t = await setup(SETTINGS(15.5, 1));
+    await t.fireCommand("increment-speed");
+    assertEquals(t.page.video.playbackRate, 16);
+    t.loadVideo("next", 600);
+    assertEquals(t.page.video.playbackRate, 16);
+    t.cleanup();
+});
+
+Deno.test("small steps do not build up floating point error", async () => {
+    const t = await setup(SETTINGS(1, 0.1));
+    for (let i = 0; i < 3; i++) await t.fireCommand("increment-speed");
+    assertEquals(t.page.video.playbackRate, 1.3);
+    t.cleanup();
+});

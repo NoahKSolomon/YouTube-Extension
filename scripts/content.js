@@ -6,8 +6,11 @@
 let player = null;
 let video = null;
 
-// Chrome's maximum playbackRate
-const AD_SPEED = 16;
+// Chrome's supported playbackRate range. Setting 0 stalls the video, and
+// anything else outside the range throws.
+const MIN_SPEED = 0.0625;
+const MAX_SPEED = 16;
+const AD_SPEED = MAX_SPEED;
 // Whether an ad is currently being sped through, and whether the extension
 // muted it (so a video the user muted stays muted afterwards)
 let skippingAd = false;
@@ -55,6 +58,13 @@ function getFormattedTrueTime(timeToConvertInSeconds, playbackRate) {
 // with "ad-showing" while one is on
 function isSkippingAd() {
     return Boolean(SETTINGS[KEYS.SKIP_ADS] && player?.classList.contains("ad-showing"));
+}
+
+// Keep a hotkey or popup speed in range, rounded so repeated 0.1 steps give
+// 1.3 rather than 1.3000000000000003
+function normalizeSpeed(speed) {
+    const rounded = Math.round(speed * 10000) / 10000;
+    return Math.min(MAX_SPEED, Math.max(MIN_SPEED, rounded));
 }
 
 function currentVideoId() {
@@ -186,17 +196,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Step from the video's actual rate, since YouTube can change it
         // without the extension knowing
         case COMMANDS.INCREMENT:
-            tabSpeed = currentSpeed + SETTINGS[KEYS.INCREMENT];
+            tabSpeed = normalizeSpeed(currentSpeed + SETTINGS[KEYS.INCREMENT]);
             speedChangedOnVideoId = currentVideoId();
             break;
         case COMMANDS.DECREMENT:
-            tabSpeed = currentSpeed - SETTINGS[KEYS.INCREMENT];
+            tabSpeed = normalizeSpeed(currentSpeed - SETTINGS[KEYS.INCREMENT]);
             speedChangedOnVideoId = currentVideoId();
             break;
         case COMMANDS.SET_SPEED_1:
         case COMMANDS.SET_SPEED_DEFAULT:
         case MESSAGES.SET_TAB_SPEED:
-            tabSpeed = message.speed;
+            tabSpeed = normalizeSpeed(message.speed);
             speedChangedOnVideoId = currentVideoId();
             break;
 
