@@ -15,6 +15,8 @@ document.addEventListener("ytpbs-get-video-info", (event) => {
         channelId: details.channelId,
         channelName: details.author,
         category: response.microformat?.playerMicroformatRenderer?.category ?? null,
+        // A stream that is live now; its duration is a finite rewind window
+        isLive: Boolean(details.isLive),
     } : null;
     document.dispatchEvent(new CustomEvent("ytpbs-video-info", {detail: JSON.stringify(info)}));
 });

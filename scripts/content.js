@@ -102,13 +102,17 @@ function matchingRule(info) {
 // The speed this video gets unless the user changes it, and why: a
 // "channel" or "category" rule (with its name as detail), "livestream"
 // (unless enabled) or "short" (at or under the cutoff), both kept at 1x, or
-// no reason for the default. Livestreams have an infinite duration.
+// no reason for the default. A stream that is live now reports a finite
+// duration (its rewind window), so YouTube's isLive flag decides, with an
+// infinite duration as a fallback.
 function automaticSpeed() {
-    const rule = matchingRule(videoInfo());
+    const info = videoInfo();
+    const rule = matchingRule(info);
     if (rule) {
         return {speed: rule.speed, reason: rule.type, detail: rule.label ?? rule.value};
     }
-    if (video.duration === Infinity && !SETTINGS[KEYS.LIVESTREAM]) {
+    const isLive = info?.isLive || video.duration === Infinity;
+    if (isLive && !SETTINGS[KEYS.LIVESTREAM]) {
         return {speed: 1, reason: "livestream"};
     }
     const cutoff = SETTINGS[KEYS.CUTOFF];

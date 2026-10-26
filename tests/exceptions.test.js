@@ -69,3 +69,24 @@ Deno.test("a short video goes back to 1x after an ad", async () => {
     assertEquals(t.page.video.playbackRate, 1);
     t.cleanup();
 });
+
+// Recorded in Chrome: a stream that is live now reports a finite duration
+// (its rewind window, e.g. 50390s); YouTube's player data has isLive: true
+Deno.test("a live stream with a finite duration stays at 1x", async () => {
+    const t = await setup(SETTINGS(2, 0.25), {
+        duration: 50390,
+        videoInfo: { channelId: "UCnews", channelName: "News", category: "News & Politics", isLive: true },
+    });
+    assertEquals(t.page.video.playbackRate, 1);
+    assertEquals(t.send({ action: "getTabState" }).reason, "livestream");
+    t.cleanup();
+});
+
+Deno.test("a finished stream plays at the default speed", async () => {
+    const t = await setup(SETTINGS(2, 0.25), {
+        duration: 7200,
+        videoInfo: { channelId: "UCnews", channelName: "News", category: "News & Politics", isLive: false },
+    });
+    assertEquals(t.page.video.playbackRate, 2);
+    t.cleanup();
+});
