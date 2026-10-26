@@ -6,10 +6,6 @@
 let player = null;
 let video = null;
 
-// Chrome's supported playbackRate range. Setting 0 stalls the video, and
-// anything else outside the range throws.
-const MIN_SPEED = 0.0625;
-const MAX_SPEED = 16;
 const AD_SPEED = MAX_SPEED;
 // Whether an ad is currently being sped through, and whether the extension
 // muted it (so a video the user muted stays muted afterwards)
@@ -22,10 +18,7 @@ let tabSpeed = null;
 // which then gets that speed even if it is short or a livestream
 let speedChangedOnVideoId = null;
 
-const KEYS = {};
 const SETTINGS = {};
-const COMMANDS = {};
-const MESSAGES = {};
 const INJECTED_ELEMENTS = {};
 
 
@@ -219,12 +212,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // SCRIPT
 
-chrome.runtime.sendMessage({action: "getAllConfigs"})
-.then((configs) => {
-    Object.assign(KEYS, configs.keys);
-    Object.assign(SETTINGS, configs.settings);
-    Object.assign(COMMANDS, configs.commands);
-    Object.assign(MESSAGES, configs.messages);
+chrome.runtime.sendMessage({action: MESSAGES.GET_SETTINGS})
+.then((settings) => {
+    Object.assign(SETTINGS, settings);
     attachToPlayer();
     new MutationObserver(attachToPlayer).observe(document.body, {childList: true, subtree: true});
 })

@@ -3,6 +3,16 @@
 
 const root = new URL("../", import.meta.url);
 export const read = (p) => Deno.readTextFile(new URL(p, root));
+
+// Each context runs scripts/sharedObjects.js before its own code, sharing
+// its top-level constants
+const withShared = async (path) => `${await read("scripts/sharedObjects.js")}
+${await read(path)}`;
+
+// Runs worker.js against a fake chrome API, as Chrome would after importScripts
+export async function loadWorker(chrome) {
+    new Function("chrome", "importScripts", await withShared("scripts/worker.js"))(chrome, () => {});
+}
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const settle = async () => { for (let i = 0; i < 5; i++) await tick(); };
 
@@ -113,11 +123,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
         },
     };
 
-    // Worker: rewrite the ES import to read from a global so it can run in a Function.
-    const shared = await import(new URL("scripts/sharedObjects.js", root));
-    const workerSrc = (await read("scripts/worker.js")).replace(/^import .*$/m, "");
-    new Function("chrome", "KEYS", "DEFAULT_SETTINGS", "COMMANDS", "MESSAGES", workerSrc)(
-        chrome, shared.KEYS, shared.DEFAULT_SETTINGS, shared.COMMANDS, shared.MESSAGES);
+    await loadWorker(chrome);
 
     // Content script gets its own chrome object, as in the browser.
     const yt = fakeYouTubePage();
@@ -141,7 +147,7 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     const onError = (e) => { e.preventDefault(); errors.push(e.reason); };
     globalThis.addEventListener("unhandledrejection", onError);
     try {
-        new Function("chrome", "document", "fetch", "MutationObserver", "location", await read("scripts/content.js"))(
+        new Function("chrome", "document", "fetch", "MutationObserver", "location", await withShared("scripts/content.js"))(
             contentChrome, yt.document, fetch, yt.MutationObserver, yt.page.location);
     } catch (e) {
         errors.push(e);

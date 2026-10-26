@@ -1,4 +1,9 @@
-export const KEYS = {
+// Constants shared by every part of the extension. Loaded as a plain script
+// before each context's own code: by the manifest for the content script, by
+// importScripts in the worker, and by a <script> tag in the popup and the
+// settings page.
+
+const KEYS = {
     DEFAULT_SPEED: "playback_speed",
     INCREMENT: "increment",
     CUTOFF: "cutoff_in_seconds",
@@ -6,7 +11,12 @@ export const KEYS = {
     SKIP_ADS: "skip_ads"
 };
 
-export const DEFAULT_SETTINGS = {
+// Chrome's supported playbackRate range. Setting 0 stalls the video, and
+// anything else outside the range throws.
+const MIN_SPEED = 0.0625;
+const MAX_SPEED = 16;
+
+const DEFAULT_SETTINGS = {
     "playback_speed": 1.0,
     "increment": 1.0,
     "cutoff_in_seconds": 0,
@@ -14,15 +24,15 @@ export const DEFAULT_SETTINGS = {
     "skip_ads": true
 };
 
-export const COMMANDS = {
+const COMMANDS = {
     INCREMENT: "increment-speed",
     DECREMENT: "decrement-speed",
     SET_SPEED_1: "set-speed-1",
     SET_SPEED_DEFAULT: "set-speed-default"
 };
 
-export const MESSAGES = {
-    GET_ALL_CONFIGS: "getAllConfigs",
+const MESSAGES = {
+    GET_SETTINGS: "getSettings",
     UPDATE_SETTINGS: "updateSettings",
     REFRESH_SETTINGS: "refreshSettings",
     GET_TAB_STATE: "getTabState",

@@ -22,12 +22,11 @@
         "open_in_tab": true
     },
     "background": {
-        "service_worker": "scripts/worker.js",
-        "type": "module"
+        "service_worker": "scripts/worker.js"
     },
     "content_scripts": [
         {
-          "js": ["scripts/content.js"],
+          "js": ["scripts/sharedObjects.js", "scripts/content.js"],
           "matches": [
             "https://www.youtube.com/*"
           ],

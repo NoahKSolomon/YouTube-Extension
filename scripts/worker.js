@@ -1,4 +1,4 @@
-import {KEYS, DEFAULT_SETTINGS, COMMANDS, MESSAGES} from "./sharedObjects.js"
+importScripts("sharedObjects.js");
 
 const settingsCache = structuredClone(DEFAULT_SETTINGS);
 // Chrome stops this worker when idle and restarts it on the next event, so
@@ -55,13 +55,8 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     switch(message.action) {
-        case MESSAGES.GET_ALL_CONFIGS:
-            settingsLoaded.then(() => sendResponse({
-                keys: KEYS,
-                settings: getSettings(),
-                commands: COMMANDS,
-                messages: MESSAGES
-            }));
+        case MESSAGES.GET_SETTINGS:
+            settingsLoaded.then(() => sendResponse(getSettings()));
             // Keeps the message channel open for the response above
             return true;
         case MESSAGES.UPDATE_SETTINGS:

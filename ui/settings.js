@@ -1,15 +1,8 @@
-// Shared by the popup and the settings page. Loads settings and constants from
-// the service worker, then binds every input marked with data-setting so each
-// change is checked and saved straight away.
+// Shared by the popup and the settings page. Loads settings from the service
+// worker, then binds every input marked with data-setting so each change is
+// checked and saved straight away.
 
-const KEYS = {};
 const SETTINGS = {};
-const COMMANDS = {};
-const MESSAGES = {};
-
-// Chrome's supported playbackRate range
-const MIN_SPEED = 0.0625;
-const MAX_SPEED = 16;
 
 function formatDuration(seconds) {
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -99,11 +92,8 @@ function bindSettings() {
     });
 }
 
-const settingsReady = chrome.runtime.sendMessage({action: "getAllConfigs"})
-.then((configs) => {
-    Object.assign(KEYS, configs.keys);
-    Object.assign(SETTINGS, configs.settings);
-    Object.assign(COMMANDS, configs.commands);
-    Object.assign(MESSAGES, configs.messages);
+const settingsReady = chrome.runtime.sendMessage({action: MESSAGES.GET_SETTINGS})
+.then((settings) => {
+    Object.assign(SETTINGS, settings);
     bindSettings();
 });

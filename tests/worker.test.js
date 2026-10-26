@@ -1,6 +1,6 @@
 // Run with: deno test --allow-read tests/
 import { assertEquals } from "jsr:@std/assert@1";
-import { read } from "./harness.js";
+import { loadWorker } from "./harness.js";
 
 // After the extension reloads, tabs that were already open have no content
 // script until refreshed, so messages to them reject with "Could not establish
@@ -26,10 +26,7 @@ async function loadWorkerWithNoReceivers() {
     const onError = (e) => { e.preventDefault(); errors.push(e.reason.message); };
     globalThis.addEventListener("unhandledrejection", onError);
 
-    const shared = await import(new URL("../scripts/sharedObjects.js", import.meta.url));
-    const workerSrc = (await read("scripts/worker.js")).replace(/^import .*$/m, "");
-    new Function("chrome", "KEYS", "DEFAULT_SETTINGS", "COMMANDS", "MESSAGES", workerSrc)(
-        chrome, shared.KEYS, shared.DEFAULT_SETTINGS, shared.COMMANDS, shared.MESSAGES);
+    await loadWorker(chrome);
 
     const settle = async () => { for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0)); };
     await settle();
@@ -64,10 +61,7 @@ Deno.test("saving one setting keeps the others", async () => {
         commands: { onCommand: { addListener() {} } },
         runtime: { onMessage: { addListener: (f) => messageListeners.push(f) } },
     };
-    const shared = await import(new URL("../scripts/sharedObjects.js", import.meta.url));
-    const workerSrc = (await read("scripts/worker.js")).replace(/^import .*$/m, "");
-    new Function("chrome", "KEYS", "DEFAULT_SETTINGS", "COMMANDS", "MESSAGES", workerSrc)(
-        chrome, shared.KEYS, shared.DEFAULT_SETTINGS, shared.COMMANDS, shared.MESSAGES);
+    await loadWorker(chrome);
     await new Promise((r) => setTimeout(r, 0));
 
     messageListeners.forEach((l) => l({ action: "updateSettings", settings: { playback_speed: 3 } }, {}, () => {}));
@@ -89,12 +83,9 @@ Deno.test("a page asking right after the worker wakes gets the saved settings", 
         commands: { onCommand: { addListener() {} } },
         runtime: { onMessage: { addListener: (f) => messageListeners.push(f) } },
     };
-    const shared = await import(new URL("../scripts/sharedObjects.js", import.meta.url));
-    const workerSrc = (await read("scripts/worker.js")).replace(/^import .*$/m, "");
-    new Function("chrome", "KEYS", "DEFAULT_SETTINGS", "COMMANDS", "MESSAGES", workerSrc)(
-        chrome, shared.KEYS, shared.DEFAULT_SETTINGS, shared.COMMANDS, shared.MESSAGES);
+    await loadWorker(chrome);
 
     const response = new Promise((resolve) =>
-        messageListeners.forEach((l) => l({ action: "getAllConfigs" }, {}, resolve)));
-    assertEquals((await response).settings, stored);
+        messageListeners.forEach((l) => l({ action: "getSettings" }, {}, resolve)));
+    assertEquals(await response, stored);
 });
