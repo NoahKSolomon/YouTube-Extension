@@ -33,20 +33,24 @@ function fakeYouTubePage() {
     function makeVideo() {
         const listeners = {};
         let playbackRate = 1;
-        return {
+        const video = {
             // Like Chrome: 0 is allowed (it stalls the video), other rates
-            // outside 0.0625-16 throw
+            // outside 0.0625-16 throw, and a change fires ratechange later
             get playbackRate() { return playbackRate; },
             set playbackRate(rate) {
                 if (rate !== 0 && (rate < 0.0625 || rate > 16)) {
                     throw new DOMException(`The provided playback rate (${rate}) is not in the supported playback range.`, "NotSupportedError");
                 }
-                playbackRate = rate;
+                if (rate !== playbackRate) {
+                    playbackRate = rate;
+                    queueMicrotask(() => video.dispatch("ratechange"));
+                }
             },
-            duration: 600, currentTime: 0, muted: false, isConnected: true,
+            duration: 600, currentTime: 0, muted: false, isConnected: true, readyState: 4,
             addEventListener: (type, f) => (listeners[type] ??= []).push(f),
             dispatch: (type) => (listeners[type] ?? []).forEach((f) => f()),
         };
+        return video;
     }
 
     const document = {
@@ -165,15 +169,31 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
         tabListeners.forEach((l) => l(message, {}, (r) => { response = r; }));
         return response;
     };
-    // What YouTube does when it opens another video without a page load
-    const loadVideo = (id, duration) => {
+    // What YouTube does when it opens another video without a page load: it
+    // empties the video (readyState 0, firing ratechange, and sometimes
+    // resetting the speed to its own), then loads the new one
+    const loadVideo = (id, duration, { youtubeResetsSpeedTo } = {}) => {
+        const video = yt.page.video;
         yt.page.location.search = `?v=${id}`;
-        yt.page.video.duration = duration;
-        yt.page.video.dispatch("loadedmetadata");
+        video.readyState = 0;
+        video.dispatch("ratechange");
+        if (youtubeResetsSpeedTo !== undefined) {
+            video.playbackRate = youtubeResetsSpeedTo;
+            video.dispatch("ratechange");
+        }
+        video.duration = duration;
+        video.readyState = 1;
+        video.dispatch("loadedmetadata");
+        video.readyState = 4;
+    };
+    // The user picking a speed in YouTube's menu (or Shift+< / Shift+>)
+    const pickYouTubeSpeed = async (rate) => {
+        yt.page.video.playbackRate = rate;
+        await settle();
     };
     return {
         page: yt.page, fireCommand, openVideo, startAd, endAd,
-        errors, fetches, cleanup, send, loadVideo, tabListeners, commandListeners,
+        errors, fetches, cleanup, send, loadVideo, pickYouTubeSpeed, tabListeners, commandListeners,
     };
 }
 

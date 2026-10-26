@@ -11,12 +11,16 @@ const AD_SPEED = MAX_SPEED;
 // muted it (so a video the user muted stays muted afterwards)
 let skippingAd = false;
 let mutedForAd = false;
-// The speed set with a hotkey or the popup for this tab, kept apart from the
-// saved default so settings changes don't reset it. null follows the default.
+// The speed set with a hotkey, the popup or YouTube's menu for this tab, kept
+// apart from the saved default so settings changes don't reset it. null
+// follows the default.
 let tabSpeed = null;
-// The video the user last changed the speed of with a hotkey or the popup,
-// which then gets that speed even if it is short or a livestream
+// The video the user last changed the speed of, which then gets that speed
+// even if it is short or a livestream
 let speedChangedOnVideoId = null;
+// The last speed this script set, to tell its own ratechange events apart
+// from YouTube's
+let appliedSpeed = null;
 
 const SETTINGS = {};
 const INJECTED_ELEMENTS = {};
@@ -84,10 +88,30 @@ function targetSpeed() {
     return tabSpeed ?? SETTINGS[KEYS.DEFAULT_SPEED];
 }
 
+function setVideoSpeed(speed) {
+    appliedSpeed = speed;
+    video.playbackRate = speed;
+}
+
+// The user picked a speed in YouTube's menu (or with Shift+< / Shift+>), so
+// keep it like a hotkey change. YouTube also fires ratechange while swapping
+// in the next video or ad, before it has loaded (readyState 0), and those
+// aren't the user's choice.
+function adoptYouTubeSpeed() {
+    if (video.readyState === 0 || video.playbackRate === appliedSpeed
+            || player.classList.contains("ad-showing")) {
+        return;
+    }
+    tabSpeed = normalizeSpeed(video.playbackRate);
+    appliedSpeed = video.playbackRate;
+    speedChangedOnVideoId = currentVideoId();
+    refreshSettingsHTML();
+}
+
 // Update the actual page elements with the settings
 function updatePageSettings() {
     if (video) {
-        video.playbackRate = targetSpeed();
+        setVideoSpeed(targetSpeed());
     }
 }
 
@@ -107,7 +131,7 @@ function handleAds() {
             video.muted = true;
         }
         if (video.playbackRate !== AD_SPEED) {
-            video.playbackRate = AD_SPEED;
+            setVideoSpeed(AD_SPEED);
         }
     } else if (skippingAd) {
         if (mutedForAd) {
@@ -145,6 +169,7 @@ function attachEventListeners() {
     video.addEventListener("loadedmetadata", refreshSettingsHTML);
     // YouTube unmutes when the next ad in a break loads
     video.addEventListener("volumechange", handleAds);
+    video.addEventListener("ratechange", adoptYouTubeSpeed);
 }
 
 // YouTube is a single page app, so the player may not exist when this script
