@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "YouTube Default Playback Speed",
     "description": "Set the default playback speed for YouTube videos! Complete with hotkeys to manipulate the current video speed.",
-    "version": "3.1.0",
+    "version": "3.2.0",
     "permissions": [
         "storage",
         "tabs",
