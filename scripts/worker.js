@@ -19,11 +19,17 @@ function getSettings() {
     return settingsCache;
 }
 
+// Tabs opened before the extension was (re)loaded have no content script until
+// refreshed, and sending to them rejects. Nothing is listening, so ignore it.
+function sendMessageToTab(tabId, message) {
+    chrome.tabs.sendMessage(tabId, message).catch(() => {});
+}
+
 function sendMessageToAllTabs(message) {
     chrome.tabs.query({}, (tabs) => {
         tabs.forEach((tab) => {
             if (tab.url.match('https:\/\/www.youtube.com\/.*')) {
-                chrome.tabs.sendMessage(tab.id, message);
+                sendMessageToTab(tab.id, message);
             }
         });
     });
@@ -40,7 +46,7 @@ function updateSettings(newSettings) {
 
 chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    chrome.tabs.sendMessage(tab.id, {
+    sendMessageToTab(tab.id, {
         action: command, 
         speed: (command === COMMANDS.SET_SPEED_DEFAULT) ? settingsCache[KEYS.DEFAULT_SPEED] : 1
     });
