@@ -70,19 +70,23 @@ function currentVideoId() {
     return new URLSearchParams(location.search).get("v");
 }
 
-// Videos at or under the cutoff, and livestreams unless enabled, stay at 1x.
-// Livestreams have an infinite duration.
-function isExcludedVideo() {
+// Why this video stays at 1x: "short" (at or under the cutoff) or
+// "livestream" (unless enabled), or null. Livestreams have an infinite
+// duration. A video whose speed the user changed has no reason.
+function exclusionReason() {
+    if (speedChangedOnVideoId === currentVideoId()) {
+        return null;
+    }
     if (video.duration === Infinity) {
-        return !SETTINGS[KEYS.LIVESTREAM];
+        return SETTINGS[KEYS.LIVESTREAM] ? null : "livestream";
     }
     const cutoff = SETTINGS[KEYS.CUTOFF];
-    return cutoff > 0 && video.duration <= cutoff;
+    return cutoff > 0 && video.duration <= cutoff ? "short" : null;
 }
 
 // The video's own speed, ignoring any ad playing over it
 function videoSpeed() {
-    if (isExcludedVideo() && speedChangedOnVideoId !== currentVideoId()) {
+    if (exclusionReason()) {
         return 1;
     }
     return tabSpeed ?? SETTINGS[KEYS.DEFAULT_SPEED];
@@ -227,7 +231,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // During an ad the video is at AD_SPEED, so use the stored speed
     const currentSpeed = video && !isSkippingAd() ? video.playbackRate : tabSpeed ?? SETTINGS[KEYS.DEFAULT_SPEED];
     if (message.action === MESSAGES.GET_TAB_STATE) {
-        sendResponse({hasVideo: Boolean(video), speed: currentSpeed});
+        sendResponse({hasVideo: Boolean(video), speed: currentSpeed, reason: video ? exclusionReason() : null});
         return;
     }
     switch(message.action) {

@@ -3,6 +3,7 @@
 
 const tabSpeed = document.getElementById("tabSpeed");
 const noVideo = document.getElementById("noVideo");
+const speedReason = document.getElementById("speedReason");
 const speedChips = [...document.querySelectorAll("[data-speed]")];
 
 let activeTabId = null;
@@ -11,9 +12,23 @@ function formatSpeed(speed) {
     return `${Number(speed.toFixed(2))}x`;
 }
 
+// Why the content script left this video at 1x
+function reasonText(reason) {
+    switch (reason) {
+        case "short":
+            return `Kept at 1x: this video is ${formatDuration(SETTINGS[KEYS.CUTOFF])} or shorter.`;
+        case "livestream":
+            return "Kept at 1x: speed changes are off for livestreams.";
+        default:
+            return "";
+    }
+}
+
 function showTabState(state) {
     const hasVideo = Boolean(state?.hasVideo);
     noVideo.hidden = hasVideo;
+    speedReason.textContent = hasVideo ? reasonText(state.reason) : "";
+    speedReason.hidden = !speedReason.textContent;
     tabSpeed.textContent = hasVideo ? formatSpeed(state.speed) : "–";
     speedChips.forEach((chip) => {
         chip.disabled = !hasVideo;

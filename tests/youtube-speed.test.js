@@ -42,6 +42,6 @@ Deno.test("speed changes during an ad are not adopted", async () => {
 Deno.test("the popup shows a speed picked in YouTube's menu", async () => {
     const t = await setup(SETTINGS(2, 0.25));
     await t.pickYouTubeSpeed(1.75);
-    assertEquals(t.send({ action: "getTabState" }), { hasVideo: true, speed: 1.75 });
+    assertEquals(t.send({ action: "getTabState" }), { hasVideo: true, speed: 1.75, reason: null });
     t.cleanup();
 });
