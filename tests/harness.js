@@ -64,7 +64,7 @@ function fakeYouTubePage() {
         getElementsByTagName: (tag) => (tag === "video" && page.video ? [page.video] : []),
         getElementsByClassName: (c) => (c === "ytp-time-duration" && page.duration ? [page.duration] : []),
         getElementById: (id) => (id === "new-time-ytpbs" ? page.injected : null),
-        createElement: (tagName) => ({ tagName: tagName.toUpperCase(), style: {}, innerHTML: "", isConnected: false }),
+        createElement: (tagName) => ({ tagName: tagName.toUpperCase(), style: {}, textContent: "", isConnected: false }),
     };
 
     class MutationObserver {

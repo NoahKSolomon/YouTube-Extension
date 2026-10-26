@@ -64,7 +64,7 @@ Deno.test("opening a video after loading on the home page applies speed and indi
     assertEquals(t.page.video.playbackRate, 2);
     assertEquals(t.page.injectCount, 1);
     t.page.video.dispatch("timeupdate");
-    assertEquals(t.page.injected.innerHTML, "(0:00/5:00) 2x");
+    assertEquals(t.page.injected.textContent, "(0:00/5:00) 2x");
     await t.fireCommand("increment-speed");
     assertEquals(t.page.video.playbackRate, 2.25);
     t.cleanup();

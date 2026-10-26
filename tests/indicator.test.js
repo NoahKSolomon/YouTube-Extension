@@ -26,6 +26,16 @@ Deno.test("the indicator is inserted right after YouTube's duration", async () =
     assertEquals(indicator.className, "ytp-time-duration");
     assertEquals(indicator.style.marginLeft, "5px");
     t.page.video.dispatch("timeupdate");
-    assertEquals(indicator.innerHTML, "(0:00/5:00) 2x");
+    assertEquals(indicator.textContent, "(0:00/5:00) 2x");
+    t.cleanup();
+});
+
+Deno.test("the indicator shows the video's speed as soon as an ad ends", async () => {
+    const t = await setup(SETTINGS(2, 0.25));
+    await t.startAd();
+    t.page.video.dispatch("timeupdate");
+    assertEquals(t.page.injected.textContent.endsWith(" 16x"), true);
+    await t.endAd();
+    assertEquals(t.page.injected.textContent, "(0:00/5:00) 2x");
     t.cleanup();
 });

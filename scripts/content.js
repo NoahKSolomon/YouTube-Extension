@@ -138,6 +138,8 @@ function handleAds() {
             video.muted = false;
         }
         updatePageSettings();
+        // Otherwise it shows the ad's 16x until the video's next timeupdate
+        refreshSettingsHTML();
     }
     skippingAd = adShowing;
 }
@@ -160,7 +162,7 @@ function refreshSettingsHTML() {
     const formattedTrueDuration = getFormattedTrueTime(video.duration, video.playbackRate);
     const formattedTrueCurrentTime = getFormattedTrueTime(video.currentTime, video.playbackRate);
     const playbackRate = video.playbackRate.toString().substring(0,4);
-    INJECTED_ELEMENTS.TIME.innerHTML = `(${formattedTrueCurrentTime}/${formattedTrueDuration}) ${playbackRate}x`;
+    INJECTED_ELEMENTS.TIME.textContent = `(${formattedTrueCurrentTime}/${formattedTrueDuration}) ${playbackRate}x`;
 }
 
 function attachEventListeners() {
