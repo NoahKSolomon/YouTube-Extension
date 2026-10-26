@@ -22,7 +22,7 @@ function getSettings() {
 function sendMessageToAllTabs(message) {
     chrome.tabs.query({}, (tabs) => {
         tabs.forEach((tab) => {
-            if (tab.url.match('https:\/\/www.youtube.com\/watch.*')) {
+            if (tab.url.match('https:\/\/www.youtube.com\/.*')) {
                 chrome.tabs.sendMessage(tab.id, message);
             }
         });

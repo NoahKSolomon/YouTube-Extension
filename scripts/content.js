@@ -2,7 +2,8 @@
 // inject the custom HTML elements, and set the playback speed of the youtube
 // video if applicable
 
-const [ video ] = document.getElementsByTagName("video");
+// Set once the watch page player exists, which may be after this script loads
+let video = null;
 
 const KEYS = {};
 const SETTINGS = {};
@@ -39,7 +40,9 @@ function getFormattedTrueTime(timeToConvertInSeconds, playbackRate) {
 
 // Update the actual page elements with the settings
 function updatePageSettings() {
-    video.playbackRate = SETTINGS[KEYS.DEFAULT_SPEED];
+    if (video) {
+        video.playbackRate = SETTINGS[KEYS.DEFAULT_SPEED];
+    }
 }
 
 async function retrieveHTMLToInject() {
@@ -50,14 +53,16 @@ async function retrieveHTMLToInject() {
     });
 }
 
-function injectSettingsHTML() {
+function injectSettingsHTML(defaultDurationElem) {
     // Time html
-    let [ defaultDurationElem ] = document.getElementsByClassName("ytp-time-duration");
     defaultDurationElem.insertAdjacentHTML('afterend', ELEMENTS.TIME);
     Object.assign(INJECTED_ELEMENTS, {TIME: document.getElementById("new-time-ytpbs")});
 }
 
 function refreshSettingsHTML() {
+    if (!video || !INJECTED_ELEMENTS.TIME) {
+        return;
+    }
     // Time html
     const formattedTrueDuration = getFormattedTrueTime(video.duration, video.playbackRate);
     const formattedTrueCurrentTime = getFormattedTrueTime(video.currentTime, video.playbackRate);
@@ -71,9 +76,30 @@ function attachEventListeners() {
     video.addEventListener("loadedmetadata", refreshSettingsHTML);
 }
 
+// YouTube is a single page app, so the player may not exist when this script
+// loads (e.g. on youtube.com/) and is built in place when a video is opened.
+// Called on every DOM mutation, so it returns early once attached.
+function attachToPlayer() {
+    if (video?.isConnected && INJECTED_ELEMENTS.TIME?.isConnected) {
+        return;
+    }
+    const playerVideo = document.querySelector("#movie_player video");
+    if (playerVideo && playerVideo !== video) {
+        video = playerVideo;
+        attachEventListeners();
+        updatePageSettings();
+    }
+    const defaultDurationElem = document.querySelector("#movie_player .ytp-time-duration");
+    if (defaultDurationElem && !INJECTED_ELEMENTS.TIME?.isConnected) {
+        injectSettingsHTML(defaultDurationElem);
+    }
+    refreshSettingsHTML();
+}
+
 
 // EVENT LISTENERS
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    const currentSpeed = video ? video.playbackRate : SETTINGS[KEYS.DEFAULT_SPEED];
     switch(message.action) {
         case MESSAGES.REFRESH_SETTINGS:
             Object.assign(SETTINGS, message.settings);
@@ -81,10 +107,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Step from the video's actual rate, since YouTube can change it
         // without the extension knowing
         case COMMANDS.INCREMENT:
-            SETTINGS[KEYS.DEFAULT_SPEED] = video.playbackRate + SETTINGS[KEYS.INCREMENT];
+            SETTINGS[KEYS.DEFAULT_SPEED] = currentSpeed + SETTINGS[KEYS.INCREMENT];
             break;
         case COMMANDS.DECREMENT:
-            SETTINGS[KEYS.DEFAULT_SPEED] = video.playbackRate - SETTINGS[KEYS.INCREMENT];
+            SETTINGS[KEYS.DEFAULT_SPEED] = currentSpeed - SETTINGS[KEYS.INCREMENT];
             break;
         case COMMANDS.SET_SPEED_1:
         case COMMANDS.SET_SPEED_DEFAULT:
@@ -105,11 +131,9 @@ chrome.runtime.sendMessage({action: "getAllConfigs"})
     Object.assign(SETTINGS, configs.settings);
     Object.assign(COMMANDS, configs.commands);
     Object.assign(MESSAGES, configs.messages);
-    updatePageSettings();
     retrieveHTMLToInject()
     .then(() => {
-        injectSettingsHTML();
-        refreshSettingsHTML();
-        attachEventListeners();
+        attachToPlayer();
+        new MutationObserver(attachToPlayer).observe(document.body, {childList: true, subtree: true});
     });
 })
