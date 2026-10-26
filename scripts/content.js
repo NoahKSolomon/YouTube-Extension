@@ -94,7 +94,8 @@ function videoInfo() {
 // A channel rule beats a category rule
 function matchingRule(info) {
     const rules = SETTINGS[KEYS.RULES] ?? [];
-    return rules.find((rule) => rule.type === "channel" && rule.value === info?.channelId)
+    const channel = info && {id: info.channelId, handle: info.handle};
+    return rules.find((rule) => isRuleForChannel(rule, channel))
         ?? rules.find((rule) => rule.type === "category" && rule.value === info?.category)
         ?? null;
 }
@@ -142,7 +143,7 @@ function tabState(currentSpeed) {
         speed: currentSpeed,
         reason,
         reasonDetail: detail ?? null,
-        channel: info ? {id: info.channelId, name: info.channelName} : null,
+        channel: info ? {id: info.channelId, name: info.channelName, handle: info.handle} : null,
         category: info?.category ?? null,
     };
 }

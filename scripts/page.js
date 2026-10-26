@@ -10,11 +10,14 @@
 document.addEventListener("ytpbs-get-video-info", (event) => {
     const response = document.getElementById(event.detail)?.getPlayerResponse?.();
     const details = response?.videoDetails;
+    const microformat = response?.microformat?.playerMicroformatRenderer;
     const info = details ? {
         videoId: details.videoId,
         channelId: details.channelId,
         channelName: details.author,
-        category: response.microformat?.playerMicroformatRenderer?.category ?? null,
+        // From e.g. "http://www.youtube.com/@Alanwalkermusic"
+        handle: microformat?.ownerProfileUrl?.match(/\/(@[^/?#]+)/)?.[1] ?? null,
+        category: microformat?.category ?? null,
         // A stream that is live now; its duration is a finite rewind window
         isLive: Boolean(details.isLive),
     } : null;

@@ -61,3 +61,11 @@ const MESSAGES = {
     SET_TAB_SPEED: "setTabSpeed",
     SPEED_CHANGED: "speedChanged",
 }
+
+// Whether a channel rule is for this channel ({id, handle}). Rules added from
+// the popup hold the channel id, and ones typed on the settings page may hold
+// its @handle, which YouTube treats case-insensitively.
+function isRuleForChannel(rule, channel) {
+    return rule.type === "channel" && (rule.value === channel?.id
+        || (rule.value.startsWith("@") && rule.value.toLowerCase() === channel?.handle?.toLowerCase()));
+}

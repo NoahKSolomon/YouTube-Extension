@@ -9,6 +9,7 @@ const speedChips = [...document.querySelectorAll("[data-speed]")];
 const channelRule = document.getElementById("channelRule");
 const channelRuleText = document.getElementById("channelRuleText");
 const channelRuleButton = document.getElementById("channelRuleButton");
+const channelRuleSpeed = document.getElementById("channelRuleSpeed");
 
 let activeTabId = null;
 let tabState = null;
@@ -32,11 +33,14 @@ function reasonText(state) {
     }
 }
 
+const rules = () => SETTINGS[KEYS.RULES] ?? [];
+
 function channelRuleFor(channel) {
-    return (SETTINGS[KEYS.RULES] ?? []).find((rule) => rule.type === "channel" && rule.value === channel.id);
+    return rules().find((rule) => isRuleForChannel(rule, channel));
 }
 
-// "Always use 1.5x" for the video's channel, or "Remove rule" if it has one
+// The speed for the video's channel: "Add rule" with the tab's speed filled
+// in, or the rule's speed (edited in place) and "Remove rule"
 function showChannelRule() {
     const channel = tabState?.hasVideo ? tabState.channel : null;
     channelRule.hidden = !channel;
@@ -44,8 +48,18 @@ function showChannelRule() {
         return;
     }
     const rule = channelRuleFor(channel);
-    channelRuleText.textContent = rule ? `${channel.name}: always ${formatSpeed(rule.speed)}` : channel.name;
-    channelRuleButton.textContent = rule ? "Remove rule" : `Always use ${formatSpeed(tabState.speed)}`;
+    channelRuleText.textContent = rule ? `${channel.name} always plays at` : `Always play ${channel.name} at`;
+    channelRuleButton.textContent = rule ? "Remove rule" : "Add rule";
+    if (document.activeElement !== channelRuleSpeed) {
+        channelRuleSpeed.value = String(rule?.speed ?? Number(tabState.speed.toFixed(2)));
+        showError(channelRuleSpeed, "");
+    }
+}
+
+function readChannelRuleSpeed() {
+    const speed = SETTING_KINDS.speed.parse(channelRuleSpeed.value);
+    showError(channelRuleSpeed, speed === undefined ? SETTING_KINDS.speed.error : "");
+    return speed;
 }
 
 function showTabState(state) {
@@ -86,11 +100,26 @@ speedChips.forEach((chip) => {
 
 channelRuleButton.addEventListener("click", () => {
     const channel = tabState.channel;
-    const rules = SETTINGS[KEYS.RULES] ?? [];
-    saveSetting(KEYS.RULES, channelRuleFor(channel)
-        ? removeRule(rules, "channel", channel.id)
-        : setRule(rules, {type: "channel", value: channel.id, label: channel.name, speed: tabState.speed}));
+    const rule = channelRuleFor(channel);
+    if (rule) {
+        saveSetting(KEYS.RULES, removeRule(rules(), rule.type, rule.value));
+    } else {
+        const speed = readChannelRuleSpeed();
+        if (speed === undefined) {
+            return;
+        }
+        saveSetting(KEYS.RULES, setRule(rules(), {type: "channel", value: channel.id, label: channel.name, speed}));
+    }
     showChannelRule();
+});
+
+// Once there is a rule, editing the speed changes it
+channelRuleSpeed.addEventListener("change", () => {
+    const rule = channelRuleFor(tabState.channel);
+    const speed = readChannelRuleSpeed();
+    if (rule && speed !== undefined) {
+        saveSetting(KEYS.RULES, setRule(rules(), {...rule, speed}));
+    }
 });
 
 // The tab picks up rule changes from the worker's broadcast, then reports back

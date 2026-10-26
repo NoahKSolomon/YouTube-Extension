@@ -98,7 +98,10 @@ function fakeYouTubePage() {
                 const info = page.videoInfo[id];
                 return info && {
                     videoDetails: { videoId: info.videoId, channelId: info.channelId, author: info.channelName, isLive: info.isLive },
-                    microformat: { playerMicroformatRenderer: { category: info.category } },
+                    microformat: { playerMicroformatRenderer: {
+                        category: info.category,
+                        ownerProfileUrl: info.handle && `http://www.youtube.com/${info.handle}`,
+                    } },
                 };
             },
         };

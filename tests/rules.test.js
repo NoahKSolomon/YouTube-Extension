@@ -7,7 +7,7 @@
 import { assertEquals, assertObjectMatch } from "jsr:@std/assert@1";
 import { read, setup, SETTINGS } from "./harness.js";
 
-const ALAN = { channelId: "UCalan", channelName: "Alan Walker", category: "Music" };
+const ALAN = { channelId: "UCalan", channelName: "Alan Walker", category: "Music", handle: "@Alanwalkermusic" };
 const CHESS = { channelId: "UCchess", channelName: "Chess Guy", category: "Gaming" };
 const withRules = (rules, extra = {}) => SETTINGS(2, 0.25, { speed_rules: rules, ...extra });
 const MUSIC_1X = { type: "category", value: "Music", speed: 1 };
@@ -98,4 +98,20 @@ Deno.test("page.js answers with nothing when the player has no data", async () =
     events.addEventListener("ytpbs-video-info", (e) => { answer = e.detail; });
     events.dispatchEvent(new CustomEvent("ytpbs-get-video-info", { detail: "movie_player" }));
     assertEquals(answer, "null");
+});
+
+// Channel rules added on the settings page use the channel's @handle, which
+// the player data has in ownerProfileUrl (recorded in Chrome for videos and
+// Shorts). YouTube treats handles case-insensitively.
+Deno.test("a channel rule by @handle matches, ignoring case", async () => {
+    const rule = { type: "channel", value: "@alanwalkermusic", label: "@alanwalkermusic", speed: 1.25 };
+    const t = await setup(withRules([MUSIC_1X, rule]), { videoInfo: ALAN });
+    assertEquals(t.page.video.playbackRate, 1.25);
+    t.cleanup();
+});
+
+Deno.test("page.js reports the channel's handle", async () => {
+    const t = await setup(SETTINGS(2, 0.25), { videoInfo: ALAN });
+    assertObjectMatch(t.send({ action: "getTabState" }), { channel: { id: "UCalan", name: "Alan Walker", handle: "@Alanwalkermusic" } });
+    t.cleanup();
 });

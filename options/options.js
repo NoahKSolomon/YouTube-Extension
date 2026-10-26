@@ -115,6 +115,21 @@ function renderRules() {
     newCategory.disabled = addCategoryRule.disabled = available.length === 0;
 }
 
+const newChannel = document.getElementById("newChannel");
+const newChannelSpeed = document.getElementById("newChannelSpeed");
+
+document.getElementById("addChannelRule").addEventListener("click", () => {
+    const channel = parseChannel(newChannel.value);
+    const speed = SETTING_KINDS.speed.parse(newChannelSpeed.value);
+    showError(newChannel, channel ? "" : "Paste a channel link, like youtube.com/@name, or an @handle");
+    showError(newChannelSpeed, speed === undefined ? SETTING_KINDS.speed.error : "");
+    if (channel && speed !== undefined) {
+        saveSetting(KEYS.RULES, setRule(rules(), {type: "channel", ...channel, speed}));
+        newChannel.value = "";
+        renderRules();
+    }
+});
+
 addCategoryRule.addEventListener("click", () => {
     const speed = SETTING_KINDS.speed.parse(newCategorySpeed.value);
     showError(newCategorySpeed, speed === undefined ? SETTING_KINDS.speed.error : "");

@@ -10,3 +10,16 @@ function setRule(rules, rule) {
 function removeRule(rules, type, value) {
     return rules.filter((r) => !(r.type === type && r.value === value));
 }
+
+// A channel typed on the settings page: an @handle or a link to one, or a
+// channel id (UC plus 22 characters) or a /channel/ link to one. undefined
+// for anything else.
+function parseChannel(text) {
+    const trimmed = text.trim();
+    const handle = trimmed.match(/^(?:(?:https?:\/\/)?(?:www\.|m\.)?youtube\.com\/)?(@[^/?#\s]+)(?:[/?#].*)?$/i);
+    if (handle) {
+        return {value: handle[1], label: handle[1]};
+    }
+    const id = trimmed.match(/^(?:(?:https?:\/\/)?(?:www\.|m\.)?youtube\.com\/channel\/)?(UC[\w-]{22})(?:[/?#].*)?$/i);
+    return id ? {value: id[1], label: id[1]} : undefined;
+}
