@@ -27,7 +27,8 @@ function fakeYouTubePage() {
     const observers = [];
     const page = {
         player: null, video: null, duration: null, injected: null, injectCount: 0,
-        location: { search: "?v=abc" },
+        shortsPlayer: null, shortsVideo: null,
+        location: { pathname: "/watch", search: "?v=abc" },
     };
 
     function makeVideo() {
@@ -58,8 +59,7 @@ function fakeYouTubePage() {
         documentElement: {},
         querySelector: (selector) => ({
             "#movie_player": page.player,
-            "#movie_player video": page.video,
-            "#movie_player .ytp-time-duration": page.duration,
+            "#shorts-player": page.shortsPlayer,
         })[selector] ?? null,
         getElementsByTagName: (tag) => (tag === "video" && page.video ? [page.video] : []),
         getElementsByClassName: (c) => (c === "ytp-time-duration" && page.duration ? [page.duration] : []),
@@ -75,10 +75,16 @@ function fakeYouTubePage() {
 
     const notify = () => [...observers].forEach((f) => f([]));
 
+    // A YouTube player element: ads add "ad-showing" to its classes
+    function makePlayer(id, contents) {
+        const classList = new Set();
+        classList.contains = classList.has;
+        return { id, classList, isConnected: true, querySelector: (selector) => contents()[selector] ?? null };
+    }
+
     // What YouTube does when a video is opened: build the player in place
     function openVideo() {
-        page.player = { classList: new Set(), isConnected: true };
-        page.player.classList.contains = page.player.classList.has;
+        page.player = makePlayer("movie_player", () => ({ "video": page.video, ".ytp-time-duration": page.duration }));
         page.video = makeVideo();
         page.duration = {
             insertAdjacentElement: (position, element) => {
@@ -99,10 +105,27 @@ function fakeYouTubePage() {
         notify();
     }
 
-    return { page, document, MutationObserver, openVideo, startAd, endAd };
+    // Shorts have their own player, which plays every Short in one <video>
+    function openShort(id) {
+        page.location.pathname = `/shorts/${id}`;
+        page.location.search = "";
+        page.shortsVideo ??= makeVideo();
+        page.shortsVideo.duration = 45;
+        page.shortsPlayer ??= makePlayer("shorts-player", () => ({ "video": page.shortsVideo }));
+        notify();
+    }
+
+    // Back to a regular video, without a page load
+    function goToWatchPage(id) {
+        page.location.pathname = "/watch";
+        page.location.search = `?v=${id}`;
+        notify();
+    }
+
+    return { page, document, MutationObserver, openVideo, startAd, endAd, openShort, goToWatchPage, notify };
 }
 
-export async function setup(storedSettings, { startOnWatchPage = true, startInAd = false, duration } = {}) {
+export async function setup(storedSettings, { startOnWatchPage = true, startOnShort = false, startInAd = false, duration } = {}) {
     const tabListeners = [];
     const workerMsgListeners = [];
     const commandListeners = [];
@@ -138,7 +161,8 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
 
     // Content script gets its own chrome object, as in the browser.
     const yt = fakeYouTubePage();
-    if (startOnWatchPage) yt.openVideo();
+    if (startOnShort) yt.openShort("short1");
+    else if (startOnWatchPage) yt.openVideo();
     if (duration !== undefined) yt.page.video.duration = duration;
     if (startInAd) yt.startAd();
     const contentChrome = {
@@ -193,6 +217,19 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
         video.dispatch("loadedmetadata");
         video.readyState = 4;
     };
+    const openShort = async (id) => { yt.openShort(id); await settle(); };
+    const goToWatchPage = async (id) => { yt.goToWatchPage(id); await settle(); };
+    // Swiping to the next Short: same <video>, new id and duration
+    const swipeToShort = (id, duration) => {
+        const video = yt.page.shortsVideo;
+        yt.page.location.pathname = `/shorts/${id}`;
+        video.readyState = 0;
+        video.dispatch("ratechange");
+        video.duration = duration;
+        video.readyState = 1;
+        video.dispatch("loadedmetadata");
+        video.readyState = 4;
+    };
     // The user picking a speed in YouTube's menu (or Shift+< / Shift+>)
     const pickYouTubeSpeed = async (rate) => {
         yt.page.video.playbackRate = rate;
@@ -200,7 +237,8 @@ export async function setup(storedSettings, { startOnWatchPage = true, startInAd
     };
     return {
         page: yt.page, badge: () => badges[tab.id], saved: () => savedSettings, settle, fireCommand, openVideo, startAd, endAd,
-        errors, fetches, cleanup, send, loadVideo, pickYouTubeSpeed, tabListeners, commandListeners,
+        errors, fetches, cleanup, send, loadVideo, pickYouTubeSpeed, openShort, goToWatchPage, swipeToShort,
+        tabListeners, commandListeners,
     };
 }
 
@@ -257,4 +295,4 @@ export async function setupSettingsUI(storedSettings, inputs) {
 }
 
 export const SETTINGS = (speed, increment, extra = {}) =>
-    ({ playback_speed: speed, increment, cutoff_in_seconds: 0, enabled_for_livestream: false, skip_ads: true, ...extra });
+    ({ playback_speed: speed, increment, cutoff_in_seconds: 0, enabled_for_livestream: false, skip_ads: true, enabled_for_shorts: false, ...extra });

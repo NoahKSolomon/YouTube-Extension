@@ -9,7 +9,8 @@ const KEYS = {
     CUTOFF: "cutoff_in_seconds",
     LIVESTREAM: "enabled_for_livestream",
     SKIP_ADS: "skip_ads",
-    SAVE_SPEED_CHANGES: "save_speed_changes"
+    SAVE_SPEED_CHANGES: "save_speed_changes",
+    SHORTS: "enabled_for_shorts"
 };
 
 // Chrome's supported playbackRate range. Setting 0 stalls the video, and
@@ -23,7 +24,8 @@ const DEFAULT_SETTINGS = {
     "cutoff_in_seconds": 0,
     "enabled_for_livestream": false,
     "skip_ads": true,
-    "save_speed_changes": false
+    "save_speed_changes": false,
+    "enabled_for_shorts": false
 };
 
 const COMMANDS = {

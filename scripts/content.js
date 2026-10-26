@@ -2,9 +2,14 @@
 // inject the custom HTML elements, and set the playback speed of the youtube
 // video if applicable
 
-// Set once the watch page player exists, which may be after this script loads
+// The active player and its video: the watch page player, or the Shorts
+// player on /shorts/ pages. Set once it exists, which may be after this
+// script loads.
 let player = null;
 let video = null;
+// Videos already given event listeners. YouTube keeps its players around,
+// so going back and forth between Shorts and videos returns to the same ones.
+const attachedVideos = new WeakSet();
 
 const AD_SPEED = MAX_SPEED;
 // Whether an ad is currently being sped through, and whether the extension
@@ -66,8 +71,10 @@ function normalizeSpeed(speed) {
     return Math.min(MAX_SPEED, Math.max(MIN_SPEED, rounded));
 }
 
+// Watch pages have the id in ?v=, Shorts in the path (/shorts/<id>)
 function currentVideoId() {
-    return new URLSearchParams(location.search).get("v");
+    const shortsId = location.pathname.match(/^\/shorts\/([^/]+)/);
+    return shortsId ? shortsId[1] : new URLSearchParams(location.search).get("v");
 }
 
 // Why this video stays at 1x: "short" (at or under the cutoff) or
@@ -195,7 +202,8 @@ function injectSettingsHTML(defaultDurationElem) {
 }
 
 function refreshSettingsHTML() {
-    if (!video || !INJECTED_ELEMENTS.TIME) {
+    // The indicator is only on the watch page player
+    if (!video || !INJECTED_ELEMENTS.TIME || player.id !== "movie_player") {
         return;
     }
     // Time html
@@ -205,39 +213,69 @@ function refreshSettingsHTML() {
     INJECTED_ELEMENTS.TIME.textContent = `(${formattedTrueCurrentTime}/${formattedTrueDuration}) ${playbackRate}x`;
 }
 
-function attachEventListeners() {
-    video.addEventListener("timeupdate", refreshSettingsHTML);
-    video.addEventListener("loadedmetadata", updatePageSettings);
-    video.addEventListener("loadedmetadata", refreshSettingsHTML);
+// The handlers act on the active video, so a video that is no longer active
+// (e.g. the hidden watch player while on Shorts) is ignored
+function attachEventListeners(target) {
+    const on = (type, handler) => target.addEventListener(type, () => {
+        if (target === video) {
+            handler();
+        }
+    });
+    on("timeupdate", refreshSettingsHTML);
+    on("loadedmetadata", updatePageSettings);
+    on("loadedmetadata", refreshSettingsHTML);
     // YouTube unmutes when the next ad in a break loads
-    video.addEventListener("volumechange", handleAds);
-    video.addEventListener("ratechange", adoptYouTubeSpeed);
+    on("volumechange", handleAds);
+    on("ratechange", adoptYouTubeSpeed);
 }
 
-// YouTube is a single page app, so the player may not exist when this script
-// loads (e.g. on youtube.com/) and is built in place when a video is opened.
-// Called on every DOM mutation, so it returns early once attached.
-function attachToPlayer() {
-    if (video?.isConnected && INJECTED_ELEMENTS.TIME?.isConnected) {
+function findPlayer() {
+    if (location.pathname.startsWith("/shorts/")) {
+        return SETTINGS[KEYS.SHORTS] ? document.querySelector("#shorts-player") : null;
+    }
+    return document.querySelector("#movie_player");
+}
+
+function switchToVideo(newPlayer, newVideo) {
+    player = newPlayer;
+    video = newVideo;
+    if (!video) {
         return;
     }
-    const playerVideo = document.querySelector("#movie_player video");
-    if (playerVideo && playerVideo !== video) {
-        video = playerVideo;
-        player = document.querySelector("#movie_player");
-        attachEventListeners();
-        updatePageSettings();
+    if (!attachedVideos.has(video)) {
+        attachedVideos.add(video);
+        attachEventListeners(video);
         // YouTube toggles the player's class when an ad starts and ends
         new MutationObserver(handleAds).observe(player, {
             attributes: true, attributeFilter: ["class"]
         });
-        handleAds();
     }
-    const defaultDurationElem = document.querySelector("#movie_player .ytp-time-duration");
-    if (defaultDurationElem && !INJECTED_ELEMENTS.TIME?.isConnected) {
-        injectSettingsHTML(defaultDurationElem);
+    updatePageSettings();
+    handleAds();
+}
+
+// YouTube is a single page app, so the player may not exist when this script
+// loads (e.g. on youtube.com/) and is built in place when a video is opened,
+// and Shorts have a player of their own. Called on every DOM mutation, so it
+// only does work when the active video or the indicator changes.
+function attachToPlayer() {
+    const activePlayer = findPlayer();
+    const activeVideo = activePlayer?.querySelector("video") ?? null;
+    let changed = false;
+    if (activeVideo !== video) {
+        switchToVideo(activePlayer, activeVideo);
+        changed = true;
     }
-    refreshSettingsHTML();
+    if (player?.id === "movie_player" && !INJECTED_ELEMENTS.TIME?.isConnected) {
+        const defaultDurationElem = player.querySelector(".ytp-time-duration");
+        if (defaultDurationElem) {
+            injectSettingsHTML(defaultDurationElem);
+            changed = true;
+        }
+    }
+    if (changed) {
+        refreshSettingsHTML();
+    }
 }
 
 
@@ -252,6 +290,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     switch(message.action) {
         case MESSAGES.REFRESH_SETTINGS:
             Object.assign(SETTINGS, message.settings);
+            // The Shorts setting decides which player is active
+            attachToPlayer();
             break;
         // Step from the video's actual rate, since YouTube can change it
         // without the extension knowing
